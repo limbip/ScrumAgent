@@ -1,0 +1,7 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "agent": "./scrumagent/build_agent_graph.py:build_graph"
+  },
+  "env": ".env"
+}
