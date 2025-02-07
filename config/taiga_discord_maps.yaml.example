@@ -1,0 +1,22 @@
+interactable_discord_channels:
+  - "example-channel-1"
+  - "example-channel-2"
+
+taiga_slag_to_discord_channel_map:
+  #TODO: Change ChannelID with name
+  #These Channels should also be listed in interactable_discord_channels
+  "example-project-1": 123456789012345678  #"example-channel-1"
+  "example-project-2": 987654321098765432  #"example-channel-2"
+
+taiga_discord_user_map:
+  #TODO: Change Taiga UserID with name
+  1: "user1"
+  2: "user2"
+  3: "user3"
+  4: "user4"
+  5: "user5"
+  6: "user6"
+  7: "user7"
+  8: "user8"
+  9: "user9"
+  10: "user10"

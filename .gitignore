@@ -321,3 +321,5 @@ chroma_db
 .langgraph_api
 .env.shikenso
 .env.personal
+Jenkinsfile
+config/taiga_discord_maps.yaml
