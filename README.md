@@ -63,8 +63,8 @@ Every Discord channel can be mapped to a different Taiga project, and user stori
 ### 3.1. Python project
  ```bash
 # Create conda env
-conda create -n autobotcentral python=3.11 -y
-conda activate autobotcentral
+conda create -n scrumagent python=3.11 -y
+conda activate scrumagent
 pip install pip -U
 pip install -r requirements.txt 
 

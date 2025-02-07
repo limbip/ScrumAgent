@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 
-from autobotcentral.tools.discord_tool import (
+from scrumagent.tools.discord_tool import (
     discord_search_tool,
     discord_channel_msgs_tool,
     discord_get_recent_messages_tool,

@@ -12,10 +12,10 @@ from dotenv import load_dotenv
 from langchain_community.callbacks import get_openai_callback
 from langchain_core.messages import HumanMessage
 
-from autobotcentral.build_agent_graph import build_graph
-from autobotcentral.data_collector.discord_chat_collector import DiscordChatCollector
-from autobotcentral.tools.taiga_tool_v2 import get_entity_by_ref_tool, get_project
-from autobotcentral.utils import split_text_smart, init_discord_chroma_db
+from scrumagent.build_agent_graph import build_graph
+from scrumagent.data_collector.discord_chat_collector import DiscordChatCollector
+from scrumagent.tools.taiga_tool_v2 import get_entity_by_ref_tool, get_project
+from scrumagent.utils import split_text_smart, init_discord_chroma_db
 
 mod_path = Path(__file__).parent
 

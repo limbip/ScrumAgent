@@ -28,9 +28,3 @@ def image_search(image_path: str) -> str:
     print("Image description:", description)
     return description
 
-
-# Example usage
-if __name__ == '__main__':
-    image_path = "/home/deniz/Masaüstü/AutoBotCentral/autobotcentral/discord_multi_agent/agents/tools/pythogoras.jpg"  # Replace with the actual image path
-    result = image_search(image_path)
-    print("Tool Result:", result)

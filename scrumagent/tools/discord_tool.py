@@ -6,7 +6,7 @@ import httpx
 from dotenv import load_dotenv
 from langchain_core.tools import tool
 
-from autobotcentral.utils import init_discord_chroma_db
+from scrumagent.utils import init_discord_chroma_db
 
 load_dotenv()
 

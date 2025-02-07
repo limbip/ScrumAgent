@@ -10,13 +10,13 @@ from langgraph.types import Command
 from langgraph.types import interrupt
 from pymongo import MongoClient
 
-from autobotcentral.agents.agent_state import State
-from autobotcentral.agents.deepseek_r1_agent import llm_agent
-from autobotcentral.agents.discord_agent import discord_search_agent
-from autobotcentral.agents.supervisor_agent import supervisor_node
-from autobotcentral.agents.taiga_agent import taiga_agent
-from autobotcentral.agents.web_agent import research_agent
-from autobotcentral.tools.timeframe_parser_tool import interpret_timeframe_tool, current_timestamp_tool
+from scrumagent.agents.agent_state import State
+from scrumagent.agents.deepseek_r1_agent import llm_agent
+from scrumagent.agents.discord_agent import discord_search_agent
+from scrumagent.agents.supervisor_agent import supervisor_node
+from scrumagent.agents.taiga_agent import taiga_agent
+from scrumagent.agents.web_agent import research_agent
+from scrumagent.tools.timeframe_parser_tool import interpret_timeframe_tool, current_timestamp_tool
 
 
 def human_input_node(state: State) -> Command[Literal["supervisor"]]:
