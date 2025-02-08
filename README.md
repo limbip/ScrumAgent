@@ -3,6 +3,9 @@
 ![Shikenso Logo](https://shikenso.com/assets2/img/ShikensoAnalytics_Thumbnail.png)
 
 <div align="center">
+  <a href="https://discord.gg/ADV99kyfjg" target="_blank" style="margin: 2px;">
+    <img alt="Discord" src="https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white" />
+  </a>
   <a href="https://shikenso.com/" target="_blank" style="margin: 2px;">
     <img alt="Homepage" src="https://img.shields.io/badge/Homepage-Shikenso-blue" />
   </a>
@@ -18,22 +21,23 @@
 
 ## Table of Contents
 
-1. [Introduction](#introduction)
-2. [Features](#features)
-    - [Discord Management](#discord-management)
-    - [Taiga Scrum Master](#taiga-scrum-master)
-    - [Web Tools](#web-tools)
-    - [DeepSeek Reasoning](#deepseek-reasoning)
-3. [Installation and Setup](#installation-and-setup)
-    - [Python Project Setup](#python-project-setup)
-    - [Discord Bot Setup](#discord-bot-setup)
-    - [Environment Variables](#environment-variables)
-4. [System Architecture](#system-architecture)
-    - [Overview](#architecture-overview)
-    - [Adding Agents and Tools](#adding-agents-and-tools)
-5. [Tracing with LangSmith](#tracing-with-langsmith)
-6. [Planned Features](#planned-features)
-7. [Contact](#contact)
+1. [Introduction](#introduction)  
+2. [Features](#features)  
+   - [Discord Management](#discord-management)  
+   - [Taiga Scrum Master](#taiga-scrum-master)  
+   - [Web Tools](#web-tools)  
+   - [DeepSeek Reasoning](#deepseek-reasoning)  
+3. [Installation and Setup](#installation-and-setup)  
+   - [Python Project Setup](#python-project-setup)  
+   - [Discord Bot Setup](#discord-bot-setup)  
+   - [Environment Variables](#environment-variables)  
+4. [Usage Examples](#usage-examples)  
+5. [System Architecture](#system-architecture)  
+   - [Overview](#overview)  
+   - [Adding Agents and Tools](#adding-agents-and-tools)  
+6. [Tracing with LangSmith](#tracing-with-langsmith)  
+7. [Planned Features](#planned-features)  
+8. [Contact](#contact)
 
 ---
 
@@ -42,6 +46,8 @@
 **Scrum Agent** is an open-source, AI-powered supervisor designed to enhance agile project management within Discord communities. Acting as a virtual Scrum Master, this agent integrates multiple tools to streamline sprint planning, issue tracking, research, and team collaboration.
 
 By mapping individual Discord channels to corresponding Taiga projects, Scrum Agent facilitates seamless user story management through threaded discussions—ensuring efficient workflow management and improved project oversight.
+
+Join our [Discord Server](https://discord.gg/ADV99kyfjg) to test the Scrum Agent and explore its features.
 
 ---
 
@@ -180,9 +186,10 @@ Scrum Agent offers a range of capabilities to support agile project management:
      ```bash
      DISCORD_TOKEN=YOUR_DISCORD_BOT_TOKEN_HERE
      ```
+
 ---
 
-### Environment Variables and Mapping
+### Environment Variables
 
 1. **Set Up Environment Variables:**
    - Copy the file `.env.example` and rename it to `.env`.
@@ -191,13 +198,12 @@ Scrum Agent offers a range of capabilities to support agile project management:
 2. **Customize the Mapping:**
    - Copy `config/taiga_discord_maps.yaml.example` and rename it to `config/taiga_discord_maps.yaml`.
    - Edit this file as needed to match your project settings.
-   
+
 ---
 
 ## 4. Usage Examples
 
 Below are examples showing **how to create and update Taiga issues or user stories** directly from Discord. Changes made in Discord appear in Taiga, making project management faster and easier.
-
 
 ### Updating a User Story
 
@@ -209,7 +215,6 @@ Below are examples showing **how to create and update Taiga issues or user stori
 **Left:** Updating a user story in Discord  
 **Right:** The updated user story in Taiga
 
-
 ### Creating or Updating an Issue
 
 <p align="center">
@@ -220,11 +225,16 @@ Below are examples showing **how to create and update Taiga issues or user stori
 **Left:** Creating or updating an issue in Discord  
 **Right:** The newly created or updated issue in Taiga
 
+
+### Try It Out!
+
+Join our [Discord Server](https://discord.gg/ADV99kyfjg) to test the Scrum Agent and explore its features.
+
 ---
 
-## 4. System Architecture
+## 5. System Architecture
 
-### Architecture Overview
+### Overview
 
 Scrum Agent is built on the [Langgraphs Supervisor Agent](https://langchain-ai.github.io/langgraph/tutorials/multi_agent/agent_supervisor/), which allows for flexible integration of multiple agents and tools. For more technical details, please refer to the Langgraphs documentation.
 
@@ -246,26 +256,26 @@ Scrum Agent is built on the [Langgraphs Supervisor Agent](https://langchain-ai.g
 
 ---
 
-## 5. Tracing with LangSmith
+## 6. Tracing with LangSmith
 
 To enable tracing with LangSmith, follow these steps:
 
 1. **Set Environment Variables:**
-   - Add the following to your `.env` file:
-     ```bash
-     LANGCHAIN_TRACING_V2=True
-     LANGCHAIN_API_KEY=your_api_key_here
-     ```
-   - Replace `your_api_key_here` with your actual API key (refer to `.env.example` for guidance).
+   ```bash
+   LANGCHAIN_TRACING_V2=True
+   LANGCHAIN_API_KEY=your_api_key_here
+   ```
+   Replace `your_api_key_here` with your actual API key (refer to `.env.example` for guidance).
 
 2. **Learn More:**
    - [Tracing Documentation](https://docs.smith.langchain.com/observability/how_to_guides/tracing/trace_with_langgraph)
    - [LangSmith Website](https://smith.langchain.com/)
 
 This configuration allows you to monitor and trace your application's activity using LangSmith.
+
 ---
 
-## 6. Planned Features
+## 7. Planned Features
 
 - **Enhanced Long-Term Memory:**  
   Integration of searchable long-term memory for specific agents.  
@@ -278,8 +288,7 @@ This configuration allows you to monitor and trace your application's activity u
 
 ---
 
-## 7. Contact
+## 8. Contact
 
-For inquiries, support, or contributions, please open an issue or contact us at .
-
----
+For inquiries, support, or contributions, please open an issue [here](https://github.com/Shikenso-Analytics/ScrumAgent/issues) or at [Taiga](https://tree.taiga.io/project/hemati-scrum-agent/issues) 
+or join our [Discord](https://discord.gg/ADV99kyfjg).
