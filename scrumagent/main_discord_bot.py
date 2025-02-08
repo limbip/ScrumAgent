@@ -7,6 +7,7 @@ from pathlib import Path
 
 import discord
 import yaml
+from discord import ChannelType
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
 from langchain_community.callbacks import get_openai_callback
@@ -14,7 +15,7 @@ from langchain_core.messages import HumanMessage
 
 from scrumagent.build_agent_graph import build_graph
 from scrumagent.data_collector.discord_chat_collector import DiscordChatCollector
-from scrumagent.tools.taiga_tool_v2 import get_entity_by_ref_tool, get_project
+from scrumagent.tools.taiga_tool import get_entity_by_ref_tool, get_project
 from scrumagent.utils import split_text_smart, init_discord_chroma_db
 
 mod_path = Path(__file__).parent
@@ -25,6 +26,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_TOKEN")
+DISCORD_THREAD_TYPE = os.getenv("DISCORD_THREAD_TYPE")
 OPEN_AI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 intents = discord.Intents.default()
@@ -96,11 +98,6 @@ async def on_message(message: discord.Message):
         with get_openai_callback() as cb:
             new_msg = discord_chat_collector.add_discord_messages_to_db(message.guild, message.channel, [message])
             summed_up_open_ai_cost["undefined"] += cb.total_cost
-
-    # TODO: For debug. enable all user story threads ....
-    if type(message.channel) != discord.DMChannel and channel_name not in INTERACTABLE_DISCORD_CHANNELS and not channel_name.startswith(
-            "#"):
-        return
 
     # Config for stateful agents
     config = {"configurable": {"user_id": channel_name, "thread_id": channel_name}}
@@ -196,7 +193,10 @@ async def manage_user_story_threads(project_slug: str):
             thread = taiga_thread_channel.get_thread(thread_name_to_id[thread_name])
         else:
             logger.info(f"Creating thread {thread_name}")
-            thread = await taiga_thread_channel.create_thread(name=thread_name)
+            if DISCORD_THREAD_TYPE == "public_thread":
+                thread = await taiga_thread_channel.create_thread(name=thread_name, type=ChannelType.public_thread)
+            else:
+                thread = await taiga_thread_channel.create_thread(name=thread_name, type=ChannelType.private_thread)
             msg = await thread.send(f"{thread_name}: {us_full_infos['description']}\n"
                                     f"{us_full_infos['url']}")
             await msg.pin()

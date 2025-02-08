@@ -14,16 +14,17 @@ from taiga.models import Project
 load_dotenv()
 
 TAIGA_URL = os.getenv("TAIGA_URL")
+TAIGA_API_URL = os.getenv("TAIGA_API_URL")
 TAIGA_TOKEN = os.getenv("TAIGA_TOKEN")
 TAIGA_USERNAME = os.getenv("TAIGA_USERNAME")
 TAIGA_PASSWORD = os.getenv("TAIGA_PASSWORD")
 
 # Initialize the main Taiga API client
 if TAIGA_USERNAME and TAIGA_PASSWORD:
-    taiga_api = TaigaAPI(host=TAIGA_URL)
+    taiga_api = TaigaAPI(host=TAIGA_API_URL)
     taiga_api.auth(TAIGA_USERNAME, TAIGA_PASSWORD)
 else:
-    taiga_api = TaigaAPI(host=TAIGA_URL, token=TAIGA_TOKEN)
+    taiga_api = TaigaAPI(host=TAIGA_API_URL, token=TAIGA_TOKEN)
 
 small_llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.2)
 
@@ -31,6 +32,9 @@ small_llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.2)
 project_cache = TTLCache(maxsize=100, ttl=timedelta(minutes=5).total_seconds())
 status_cache = TTLCache(maxsize=100, ttl=timedelta(minutes=5).total_seconds())
 
+find_issue_type_cache = TTLCache(maxsize=100, ttl=timedelta(days=1).total_seconds())
+find_severity_cache = TTLCache(maxsize=100, ttl=timedelta(days=1).total_seconds())
+find_priority_cache = TTLCache(maxsize=100, ttl=timedelta(days=1).total_seconds())
 find_status_cache = TTLCache(maxsize=100, ttl=timedelta(days=1).total_seconds())
 
 user_cache = TTLCache(maxsize=100, ttl=timedelta(days=1).total_seconds())
@@ -66,7 +70,6 @@ def fetch_entity(project: Project, norm_type: str, entity_ref: int):
 @cached(cache=project_cache)
 def get_project(slug: str) -> Optional[Project]:
     """Get project by slug with auto-refreshing 5-minute cache."""
-    print([x.slug for x in taiga_api.projects.list()])
     try:
         project = taiga_api.projects.get_by_slug(slug)
         return project
@@ -183,78 +186,117 @@ def get_status(project_slug: str, entity_type: str, status_id: int) -> Optional[
     return None
 
 
-@cached(cache=find_status_cache)
-def find_status_ids(project_slug: str, entity_type: str, query: str) -> List[int]:
-    """
-    Find status IDs by semantic matching for any entity type.
-
-    Args:
-        project_slug: Project identifier from URL.
-        entity_type: 'task', 'us', or 'issue'.
-        query: Status name or description to match.
-
-    Returns:
-        A list of status IDs that match the query (ordered by relevance).
-        Returns an empty list if no match is found.
-    """
-    norm_type = normalize_entity_type(entity_type)
-    if not norm_type:
-        print(f"Invalid entity type: {entity_type}")
-        return []
-
-    project = get_project(project_slug)
-    if not project:
-        print(f"Project {project_slug} not found")
-        return []
-
-    # Get the appropriate status list
-    try:
-        if norm_type == "task":
-            statuses = project.list_task_statuses()
-        elif norm_type == "us":
-            statuses = project.list_user_story_statuses()
-        elif norm_type == "issue":
-            statuses = project.list_issue_statuses()
-        else:
-            return []
-    except AttributeError as e:
-        print(f"Error getting statuses: {e}")
-        return []
-
-    # Try exact match first: if found, return it as a single-item list.
-    exact_match = next((s for s in statuses if s.name.lower() == query.lower()), None)
+def _find_attribute_ids(
+        project: Project,
+        items: list,
+        query: str,
+        attribute_type: str
+) -> List[int]:
+    """Generic helper for finding attribute IDs using LLM semantic matching."""
+    # Try exact match first
+    exact_match = next((item for item in items if item.name.lower() == query.lower()), None)
     if exact_match:
         return [exact_match.id]
 
-    # Fallback to semantic matching.
-    status_dicts = [{**s.to_dict(), "id": s.id} for s in statuses]
+    # Prepare items for LLM processing
+    item_dicts = [{
+        "id": item.id,
+        "name": item.name,
+        "description": getattr(item, "description", "")
+    } for item in items]
 
     prompt = f"""
-Match Taiga statuses to query. Follow these rules:
-1. Exact name matches have priority.
-2. Partial matches (e.g. 'progress' matches 'In Progress').
-3. Semantic similarity (e.g. 'unstarted' → 'New').
+Match Taiga {attribute_type} entries to query. Rules:
+1. Exact name matches first
+2. Partial matches (e.g. 'progress' → 'In Progress')
+3. Semantic similarity (e.g. 'urgent' → 'Critical')
 
-Statuses (JSON):
-{json.dumps(status_dicts, indent=2)}
+Available {attribute_type} entries (JSON):
+{json.dumps(item_dicts, indent=2)}
 
 Query: {query}
 
-Return ONLY the JSON list of numeric IDs (for example: [13, 14, 15, 16]) with no markdown formatting, code fences, or additional text.
+Return ONLY a JSON list of numeric IDs (e.g. [13, 14]) with no extra formatting.
 """
 
     try:
         response = small_llm.invoke([HumanMessage(content=prompt)])
-        # Expecting a JSON list, e.g. [3, 5, 7]
-        status_ids = json.loads(response.content.strip())
-        if isinstance(status_ids, list):
-            return status_ids
-        else:
-            # If the response is a single number, wrap it in a list.
-            return [int(status_ids)]
+        return json.loads(response.content.strip())
     except Exception as e:
-        print(f"Status lookup error: {e}")
+        print(f"Error finding {attribute_type} IDs: {e}")
         return []
+
+
+@cached(cache=find_issue_type_cache)
+def find_issue_type_ids(project_slug: str, query: str) -> List[int]:
+    """Find issue type IDs by semantic matching."""
+    project = get_project(project_slug)
+    if not project:
+        return []
+    return _find_attribute_ids(project, project.list_issue_types(), query, "issue_type")
+
+
+@cached(cache=find_severity_cache)
+def find_severity_ids(project_slug: str, query: str) -> List[int]:
+    """Find severity IDs by semantic matching."""
+    project = get_project(project_slug)
+    if not project:
+        return []
+    return _find_attribute_ids(project, project.list_severities(), query, "severity")
+
+
+@cached(cache=find_priority_cache)
+def find_priority_ids(project_slug: str, query: str) -> List[int]:
+    """Find priority IDs by semantic matching."""
+    project = get_project(project_slug)
+    if not project:
+        return []
+    return _find_attribute_ids(project, project.list_priorities(), query, "priority")
+
+
+@cached(cache=find_status_cache)
+def find_status_ids(project_slug: str, entity_type: str, query: str) -> List[int]:
+    """Find status IDs by semantic matching for any entity type."""
+    norm_type = normalize_entity_type(entity_type)
+    project = get_project(project_slug)
+
+    if not norm_type or not project:
+        return []
+
+    status_map = {
+        "task": project.list_task_statuses,
+        "us": project.list_user_story_statuses,
+        "issue": project.list_issue_statuses
+    }
+
+    return _find_attribute_ids(
+        project,
+        status_map[norm_type](),
+        query,
+        "status"
+    )
+
+
+def get_severity(project_slug: str, severity_id: int) -> Optional[Dict]:
+    """
+    Get severity by ID for a specific project.
+
+    Args:
+        project_slug: Project identifier.
+        severity_id: ID of the severity.
+
+    Returns:
+        Dictionary with severity details or an error dict.
+    """
+    project = get_project(project_slug)
+    if not project:
+        return None
+
+    try:
+        return project.severities.get(severity_id).to_dict()
+    except Exception as e:
+        return {"error": str(e), "code": 500}
+    return None
 
 
 @tool(parse_docstring=True)
@@ -326,15 +368,33 @@ def create_entity_tool(project_slug: str,
         # elif norm_type == "us":
         #    entity = project.add_user_story(**create_data)
         elif norm_type == "issue":
-            print(project.list_priorities())
-            create_data["priority"] = 7
-            print(project.list_issue_statuses())
-            create_data["status"] = find_status_ids(project_slug=project_slug, entity_type=entity_type, query=status)[0]
+            # Resolve issue type
+            issue_type_ids = find_issue_type_ids(project_slug, "Bug")  # Example value
+            if not issue_type_ids:
+                return json.dumps({"error": "Issue type 'Bug' not found"}, indent=2)
+            create_data["issue_type"] = issue_type_ids[0]
 
-            print(project.list_issue_types())
-            create_data["issue_type"] = 8
-            print(project.list_severities())
-            create_data["severity"] = 11
+            # Resolve severity
+            severity_ids = find_severity_ids(project_slug, "Normal")  # Example value
+            if not severity_ids:
+                return json.dumps({"error": "Severity 'High' not found"}, indent=2)
+            create_data["severity"] = severity_ids[0]
+
+            # Resolve priority
+            priority_ids = find_priority_ids(project_slug, "Normal")  # Example value
+            if priority_ids:
+                create_data["priority"] = priority_ids[0]
+
+            # Status resolution (existing)
+            status_ids = find_status_ids(
+                project_slug=project_slug,
+                entity_type=entity_type,
+                query=status
+            )
+            if not status_ids:
+                return json.dumps({"error": f"Status '{status}' not found"}, indent=2)
+            create_data["status"] = status_ids[0]
+
             entity = project.add_issue(**create_data)
         else:
             return json.dumps({"error": "Unsupported entity type", "code": 400}, indent=2)

@@ -131,6 +131,8 @@ Scrum Agent offers a range of capabilities to support agile project management:
    ollama pull deepseek-r1:8b
    ```
 
+---
+
 ### Discord Bot Setup
 
 #### 1. Create Your Discord Bot
@@ -153,12 +155,32 @@ Scrum Agent offers a range of capabilities to support agile project management:
   - **Send Messages in Threads**
   - **Read Message History**
   - **Add Reactions**
+- **Enable Intents:**  
+  Go to the **"Bot"** tab and enable:
+  - **Server Members Intent**
+  - **Message Content Intent**
 
 #### 3. Add the Bot to Your Server
 - **Generate the OAuth2 URL:**  
   After configuring the permissions, generate the OAuth2 URL.
 - **Invite the Bot:**  
   Use the generated URL to invite the bot to your Discord server, and follow the on-screen instructions to complete the process.
+
+#### 4. Retrieve Your Bot Token
+1. **Go to the "Bot" Tab:**  
+   In your application settings, click on the **"Bot"** tab in the sidebar.
+2. **Reveal the Token:**  
+   Under the **"Build-A-Bot"** section, locate the **"Token"** field. Click the **"Reset Token"** or **"View Token"** button to reveal your bot token.  
+   > **Important:** Never share your bot token publicly or commit it to version control. Treat it like a password.
+3. **Copy Your Token:**  
+   Copy the bot token for the next step.
+4. **Add the Token to Your `.env` File:**  
+   - If you haven’t created a `.env` file, copy `.env.example` to `.env`.
+   - Add the following line to your `.env` file:
+     ```bash
+     DISCORD_TOKEN=YOUR_DISCORD_BOT_TOKEN_HERE
+     ```
+---
 
 ### Environment Variables and Mapping
 
@@ -170,6 +192,34 @@ Scrum Agent offers a range of capabilities to support agile project management:
    - Copy `config/taiga_discord_maps.yaml.example` and rename it to `config/taiga_discord_maps.yaml`.
    - Edit this file as needed to match your project settings.
    
+---
+
+## 4. Usage Examples
+
+Below are examples showing **how to create and update Taiga issues or user stories** directly from Discord. Changes made in Discord appear in Taiga, making project management faster and easier.
+
+
+### Updating a User Story
+
+<p align="center">
+  <img src="assets/userstory_discord.png" alt="Updating a user story in Discord" height="300" />
+  <img src="assets/userstory_taiga.png" alt="Updated user story in Taiga" height="300" />
+</p>
+
+**Left:** Updating a user story in Discord  
+**Right:** The updated user story in Taiga
+
+
+### Creating or Updating an Issue
+
+<p align="center">
+  <img src="assets/issue_discord.png" alt="Creating or updating an issue in Discord" height="300" />
+  <img src="assets/issue_taiga.png" alt="Issue created or updated in Taiga" height="300" />
+</p>
+
+**Left:** Creating or updating an issue in Discord  
+**Right:** The newly created or updated issue in Taiga
+
 ---
 
 ## 4. System Architecture
