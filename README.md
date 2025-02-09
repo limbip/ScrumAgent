@@ -49,6 +49,12 @@ By mapping individual Discord channels to corresponding Taiga projects, Scrum Ag
 
 Join our [Discord Server](https://discord.gg/ADV99kyfjg) to test the Scrum Agent and explore its features.
 
+### Project Goals, Audience & Maturity
+
+Scrum Agent is particularly helpful for **small dev teams** without a dedicated Scrum Master, but can also be used by **larger teams** looking to keep their Discord conversations and Taiga board in sync. **Currently**, it’s designed for Discord and Taiga, but we **plan** to extend support to **Slack and Jira** as well.
+
+The project is **still in an early stage** and is under active development—use it at your own risk. That said, we welcome contributions and feedback from the community to help shape its future.
+
 ---
 
 ## 2. Features
@@ -225,7 +231,6 @@ Below are examples showing **how to create and update Taiga issues or user stori
 **Left:** Creating or updating an issue in Discord  
 **Right:** The newly created or updated issue in Taiga
 
-
 ### Try It Out!
 
 Join our [Discord Server](https://discord.gg/ADV99kyfjg) to test the Scrum Agent and explore its features.
@@ -294,5 +299,5 @@ This configuration allows you to monitor and trace your application's activity u
 
 ## 8. Contact
 
-For inquiries, support, or contributions, please open an issue [here](https://github.com/Shikenso-Analytics/ScrumAgent/issues) or at [Taiga](https://tree.taiga.io/project/hemati-scrum-agent/issues) 
+For inquiries, support, or contributions, please open an issue [here](https://github.com/Shikenso-Analytics/ScrumAgent/issues) or at [Taiga](https://tree.taiga.io/project/hemati-scrum-agent/issues)  
 or join our [Discord](https://discord.gg/ADV99kyfjg).
