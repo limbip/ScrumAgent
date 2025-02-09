@@ -21,23 +21,23 @@
 
 ## Table of Contents
 
-1. [Introduction](#introduction)  
-2. [Features](#features)  
+1. [Introduction](#1-introduction)  
+2. [Features](#2-features)  
    - [Discord Management](#discord-management)  
    - [Taiga Scrum Master](#taiga-scrum-master)  
    - [Web Tools](#web-tools)  
    - [DeepSeek Reasoning](#deepseek-reasoning)  
-3. [Installation and Setup](#installation-and-setup)  
+3. [Installation and Setup](#3-installation-and-setup)  
    - [Python Project Setup](#python-project-setup)  
    - [Discord Bot Setup](#discord-bot-setup)  
    - [Environment Variables](#environment-variables)  
-4. [Usage Examples](#usage-examples)  
-5. [System Architecture](#system-architecture)  
+4. [Usage Examples](#4-usage-examples)  
+5. [System Architecture](#5-system-architecture)  
    - [Overview](#overview)  
    - [Adding Agents and Tools](#adding-agents-and-tools)  
-6. [Tracing with LangSmith](#tracing-with-langsmith)  
-7. [Planned Features](#planned-features)  
-8. [Contact](#contact)
+6. [Tracing with LangSmith](#6-tracing-with-langsmith)  
+7. [Planned Features](#7-planned-features)  
+8. [Contact](#8-contact)
 
 ---
 
@@ -264,6 +264,7 @@ To enable tracing with LangSmith, follow these steps:
    ```bash
    LANGCHAIN_TRACING_V2=True
    LANGCHAIN_API_KEY=your_api_key_here
+   LANGCHAIN_PROJECT=your_project_name
    ```
    Replace `your_api_key_here` with your actual API key (refer to `.env.example` for guidance).
 
@@ -285,6 +286,9 @@ This configuration allows you to monitor and trace your application's activity u
   
 - **Multi-Server Support:**  
   Expanding bot capabilities to support multiple Discord servers (currently limited to one).
+
+- **Roadmap:**
+  See the [Taiga Project](https://tree.taiga.io/project/hemati-scrum-agent/kanban) for the latest updates and planned features.
 
 ---
 
