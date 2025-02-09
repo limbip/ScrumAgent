@@ -300,4 +300,4 @@ This configuration allows you to monitor and trace your application's activity u
 ## 8. Contact
 
 For inquiries, support, or contributions, please open an issue [here](https://github.com/Shikenso-Analytics/ScrumAgent/issues) or at [Taiga](https://tree.taiga.io/project/hemati-scrum-agent/issues)  
-or join our [Discord](https://discord.gg/ADV99kyfjg).
+or join our [Discord](https://discord.gg/ADV99kyfjg) or contact alexander.henlein@shikenso.com
