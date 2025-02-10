@@ -17,6 +17,7 @@ Analyze the development progress of user_story "{taiga_name}" (Ref: {taiga_ref})
       - Cross-check with Taiga tasks.
       - Create or update tasks (e.g. change description or add comments) in Taiga based on the Discord discussions.
       - Change the status of tasks (e.g. 'in progress' or 'done') in Taiga based on the Discord discussions.
+   - If nothing has changed, stop here.
 
 2. **Output Summary:** with emoticons for readability and team engagement (Displayed)  
     - **Updated Tasks:** List recently updated or discussed tasks including the latest activities. Provide Taiga task links.
