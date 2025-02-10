@@ -284,19 +284,9 @@ This configuration allows you to monitor and trace your application's activity u
 
 ---
 
-## 7. Planned Features
+## 7. Roadmap
 
-- **Enhanced Long-Term Memory:**  
-  Integration of searchable long-term memory for specific agents.  
-  References:
-  - [Memory Agent Repository](https://github.com/langchain-ai/memory-agent)
-  - [Long Term Memory Documentation](https://python.langchain.com/docs/versions/migrating_memory/long_term_memory_agent/)
-  
-- **Multi-Server Support:**  
-  Expanding bot capabilities to support multiple Discord servers (currently limited to one).
-
-- **Roadmap:**
-  See the [Taiga Project](https://tree.taiga.io/project/hemati-scrum-agent/kanban) for the latest updates and planned features.
+See the [Taiga Project](https://tree.taiga.io/project/hemati-scrum-agent/kanban) for the latest updates and planned features.
 
 ---
 
