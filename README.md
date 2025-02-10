@@ -141,6 +141,7 @@ Scrum Agent offers a range of capabilities to support agile project management:
    ```bash
    curl -fsSL https://ollama.com/install.sh | sh
    ollama pull deepseek-r1:8b
+   ollama pull llama3.2-vision:11b
    ```
 
 ---

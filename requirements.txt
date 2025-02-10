@@ -1,6 +1,9 @@
+requests
+pytz
 tqdm
 pyyaml
 openai
+pillow
 python-dotenv
 uvicorn
 langchain

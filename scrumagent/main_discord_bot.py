@@ -5,7 +5,12 @@ import logging
 import os
 from pathlib import Path
 import pytz
+import requests
+from transformers.utils.chat_template_utils import description_re
+
 from config import scrum_promts
+from PIL import Image
+from io import BytesIO
 
 import discord
 import yaml
@@ -18,7 +23,7 @@ from langchain_core.messages import HumanMessage
 from scrumagent.build_agent_graph import build_graph
 from scrumagent.data_collector.discord_chat_collector import DiscordChatCollector
 from scrumagent.tools.taiga_tool import get_entity_by_ref_tool, get_project
-from scrumagent.utils import split_text_smart, init_discord_chroma_db
+from scrumagent.utils import split_text_smart, init_discord_chroma_db, get_image_description_via_llama
 
 mod_path = Path(__file__).parent
 
@@ -104,24 +109,12 @@ async def on_message(message: discord.Message):
     # Config for stateful agents
     config = {"configurable": {"user_id": channel_name, "thread_id": channel_name}}
 
-    attachments = message.attachments
-    for attachment in attachments:
-        attachment_url = attachment.url
-        if attachment.content_type.startswith("image"):
-            pass
-        elif attachment.content_type.startswith("video"):
-            pass
-        elif attachment.content_type.startswith("audio"):
-            pass
-        elif attachment.content_type.startswith("text"):
-            pass
-        else:
-            logger.error(f"Unknown attachment type: {attachment.content_type} for {attachment.filename}: {attachment.url}")
-
+    # Prepare the question format
     question_format = (
         f"DiscordMsg: {message.content} (From user: {message.author}, channel_name: {channel_name}, "
         f"channel_id: {message.channel.id}, timestamp_sent: {message.created_at.timestamp()})")
 
+    # Add the taiga slug and user story to the question format if the message is not a direct message
     if type(message.channel) != discord.DMChannel:
         taiga_slug = None
         if message.channel.id in DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP:
@@ -135,6 +128,37 @@ async def on_message(message: discord.Message):
         if channel_name.startswith("#"):
             question_format += f" (Corresponding taiga user story id: {channel_name.split(' ')[0][1:]})"
 
+
+    # Prepare the attachments. Currently only images and text files are supported.
+    attachments = message.attachments
+    attachments_prepared = []
+    for attachment in attachments:
+        response = requests.get(attachment.url)
+
+        if response.status_code != 200:
+            logger.error(f"Failed to retrieve the file. Status code: {response.status_code}. URL: {attachment.url}")
+            continue
+
+        if attachment.content_type.startswith("image"):
+            image = Image.open(BytesIO(response.content))  # Open image from response content
+            image.save("temp_image.jpg")  # Save the image to a temporary file
+            description = get_image_description_via_llama("temp_image.jpg")  # Get the image description
+            os.remove("temp_image.jpg")
+            attachments_prepared.append(f"Attached Image (Description): {description}")
+        #elif attachment.content_type.startswith("audio"):
+            # Whisper transcription
+        #    pass
+        elif attachment.content_type.startswith("text"):
+                text_content = response.text  # Get the content as a string
+                attachments_prepared.append(f"Attached Textfile: {text_content}")
+        else:
+            logger.error(f"Unknown attachment type: {attachment.content_type} for {attachment.filename}: {attachment.url}")
+
+    if attachments_prepared:
+        question_format += "\n" + "Attachments:"
+        question_format += "\n" + "\n".join(attachments_prepared)
+
+    # If the bot is not mentioned in the message, add the question to the state of the multi-agent graph.
     if not bot.user.mentioned_in(message) and type(message.channel) != discord.DMChannel:
         current_messages_state = multi_agent_graph.get_state(config=config).values.get("messages", [])
         current_messages_state.append(HumanMessage(content=question_format))
@@ -156,8 +180,8 @@ async def on_message(message: discord.Message):
     str_result = result["messages"][-1].content
     logger.info(f"Result: {str_result}")
 
-    # send multimple messages if the result is too long (2000 char is discord limit)
 
+    # send multimple messages if the result is too long (2000 char is discord limit)
     str_results_segments = split_text_smart(str_result)
     for segment in str_results_segments:
         await message.reply(segment, suppress_embeds=True)
