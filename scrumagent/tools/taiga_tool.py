@@ -296,7 +296,7 @@ def get_severity(project_slug: str, severity_id: int) -> Optional[Dict]:
         return project.severities.get(severity_id).to_dict()
     except Exception as e:
         return {"error": str(e), "code": 500}
-    return None
+    #return None
 
 
 @tool(parse_docstring=True)
@@ -307,6 +307,7 @@ def create_entity_tool(project_slug: str,
                        description: str = "",
                        parent_ref: Optional[int] = None,
                        assign_to: Optional[str] = None,
+                       due_date: Optional[str] = None,
                        tags: List[str] = []) -> str:
     """
     Create new tasks or issues.
@@ -323,6 +324,7 @@ def create_entity_tool(project_slug: str,
         description: Detailed description (optional)
         parent_ref: For tasks - user story reference
         assign_to: Username to assign (optional)
+        due_date: Deadline for the task (Format: YYYY-MM-DD) (optional)
         tags: List of tags (optional)
 
     Returns:
@@ -356,7 +358,8 @@ def create_entity_tool(project_slug: str,
         "subject": subject[:500],
         "description": description[:2000],
         "tags": tags,
-        "assigned_to": assignee_id
+        "assigned_to": assignee_id,
+        "due_date": due_date
     }
 
     try:
@@ -406,6 +409,7 @@ def create_entity_tool(project_slug: str,
         "type": norm_type,
         "ref": entity.ref,
         "subject": entity.subject,
+        "due_date": due_date,
         "url": f"{TAIGA_URL}/project/{project_slug}/{norm_type}/{entity.ref}",
         "assigned_to": assign_to,
         "parent": parent_ref
@@ -559,6 +563,7 @@ Example response for "John's open UX tasks":
                 "status": status_name,
                 "assigned_to": get_user(entity.assigned_to)["username"] if entity.assigned_to else None,
                 "created_date": entity.created_date if entity.created_date else None,
+                "due_date": entity.due_date,
                 "url": f"{TAIGA_URL}/project/{project_slug}/{norm_type}/{entity.ref}"
             })
 
@@ -593,6 +598,7 @@ def get_entity_by_ref_tool(project_slug: str, entity_ref: int, entity_type: str)
             "status": "Status Name",
             "subject": "Entity subject",
             "description": "Entity description",
+            "due_date": "2022-12-31",
             "url": "http://TAIGA_URL/project/project-slug/task/123",
             "related": {
                 "comments": 3,
@@ -635,6 +641,7 @@ def get_entity_by_ref_tool(project_slug: str, entity_ref: int, entity_type: str)
         "status": status_name,
         "subject": entity.subject,
         "description": entity.description,
+        "due_date": entity.due_date,
         "url": f"{TAIGA_URL}/project/{project_slug}/{norm_type}/{entity.ref}",
         "related": {"comments": len(getattr(entity, "comments", []))}
     }
@@ -781,4 +788,3 @@ def add_comment_by_ref_tool(project_slug: str, entity_ref: int, entity_type: str
         "url": f"{TAIGA_URL}/project/{project_slug}/{norm_type}/{entity_ref}",
         "comment_preview": f"{truncated_comment[:50]}..." if len(truncated_comment) > 50 else truncated_comment
     }, indent=2)
-

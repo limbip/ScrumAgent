@@ -4,6 +4,7 @@ import json
 import logging
 import os
 from pathlib import Path
+import pytz
 
 import discord
 import yaml
@@ -150,25 +151,6 @@ async def on_message(message: discord.Message):
     # Deactivated for debugging purposes.
     # discord_chat_collector.get_links_from_messages(message.guild, message.channel, [message])
     # discord_chat_collector.get_files_from_messages(message.guild, message.channel, [message])
-
-
-@bot.event
-async def on_ready():
-    logger.info(f"Logged in as {bot.user} (ID: {bot.user.id})")
-    for assistant in data_collector_list:
-        await assistant.on_startup()
-    logger.info("Bots are ready!")
-
-    # Get all user_stories of active sprints
-    for project_slug in TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP.keys():
-        await manage_user_story_threads(project_slug)
-
-    await bot.tree.sync()
-
-    logger.info("Bot command tree synced!")
-
-    # await scrum_master_task()
-
 
 async def manage_user_story_threads(project_slug: str):
     logger.info("Manage user story threads started.")
@@ -323,8 +305,12 @@ async def output_total_open_ai_cost():
 """
 
 
-@tasks.loop(time=datetime.time(hour=8, minute=0))
+@tasks.loop(time=datetime.time(hour=8, minute=0, tzinfo=pytz.timezone('Europe/Berlin')))
 async def scrum_master_task():
+    # Only run on weekdays
+    if datetime.datetime.today().weekday() > 4:
+        return
+
     logger.info("Scrum master started.")
     for project_slug in TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP.keys():
         await manage_user_story_threads(project_slug)
@@ -406,6 +392,26 @@ async def scrum_master_task():
             str_results_segments = split_text_smart(str_result)
             for segment in str_results_segments:
                 await thread.send(segment, suppress_embeds=True)
+
+
+@bot.event
+async def on_ready():
+    logger.info(f"Logged in as {bot.user} (ID: {bot.user.id})")
+    for assistant in data_collector_list:
+        await assistant.on_startup()
+    logger.info("Bots are ready!")
+
+    # Get all user_stories of active sprints
+    for project_slug in TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP.keys():
+        await manage_user_story_threads(project_slug)
+
+    await bot.tree.sync()
+    logger.info("Bot command tree synced!")
+
+    scrum_master_task.start()
+    daily_datacollector_task.start()
+    update_taiga_threads.start()
+    # await scrum_master_task()
 
 
 if __name__ == "__main__":
