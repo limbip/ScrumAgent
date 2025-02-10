@@ -172,8 +172,13 @@ async def manage_user_story_threads(project_slug: str):
         us_full_infos = json.loads(us_full_infos)
 
         if thread_name in thread_name_to_id:
-            logger.info(f"Skipping {thread_name} as it already exists.")
+            logger.info(f"Skipping '{thread_name}' as it already exists.")
             thread = taiga_thread_channel.get_thread(thread_name_to_id[thread_name])
+
+            if not thread.pins():
+                # Pin the first message in the thread. Safety measures, when something went wrong while initializing.
+                messages = [message async for message in thread.history(limit=1, oldest_first=True)]
+                await messages[0].pin()
         else:
             logger.info(f"Creating thread {thread_name}")
             if DISCORD_THREAD_TYPE == "public_thread":
