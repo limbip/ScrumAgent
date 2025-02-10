@@ -238,6 +238,7 @@ async def manage_user_story_threads(project_slug: str):
                 # TODO: For some reason, thread.members is empty. Need the check bot permissions
                 if discord_user not in thread.members:
                     await thread.add_user(discord_user)
+                    await asyncio.sleep(0.5) # Sleep for 0.5 second to avoid rate limiting
 
     if project.is_backlog_activated:
         sprints = project.list_milestones(closed=False)
