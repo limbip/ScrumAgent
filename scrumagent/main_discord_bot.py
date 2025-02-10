@@ -232,7 +232,7 @@ async def manage_user_story_threads(project_slug: str):
                                                                                       taiga_name=user_story.subject,
                                                                                       project_slug=project_slug)
 
-            config = {"configurable": {"user_id": thread.name, "thread_id": thread_name}}
+            config = {"configurable": {"user_id": thread.name, "thread_id": f"{thread.name} thread_init"}}
             async with thread.typing():
                 loop = asyncio.get_running_loop()
                 # Use run_in_executor to run the blocking invocation in a separate thread.
@@ -356,7 +356,7 @@ async def scrum_master_task():
 
             scrum_task_promt = scrum_promts.scrum_master_promt.format(taiga_ref=taiga_ref, taiga_name=taiga_name,
                                                          project_slug=project_slug)
-            config = {"configurable": {"user_id": thread.name, "thread_id": thread.name}}
+            config = {"configurable": {"user_id": thread.name, "thread_id": f"{thread.name} scrum_master"}}
 
             logger.info(f"Scrum master promt: {scrum_task_promt}")
             async with thread.typing():
