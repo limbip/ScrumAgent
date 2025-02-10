@@ -6,7 +6,6 @@ import os
 from pathlib import Path
 import pytz
 import requests
-from transformers.utils.chat_template_utils import description_re
 
 from config import scrum_promts
 from PIL import Image
