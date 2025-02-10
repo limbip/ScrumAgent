@@ -104,7 +104,20 @@ async def on_message(message: discord.Message):
     # Config for stateful agents
     config = {"configurable": {"user_id": channel_name, "thread_id": channel_name}}
 
-    # Format the question with the user and channel info
+    attachments = message.attachments
+    for attachment in attachments:
+        attachment_url = attachment.url
+        if attachment.content_type.startswith("image"):
+            pass
+        elif attachment.content_type.startswith("video"):
+            pass
+        elif attachment.content_type.startswith("audio"):
+            pass
+        elif attachment.content_type.startswith("text"):
+            pass
+        else:
+            logger.error(f"Unknown attachment type: {attachment.content_type} for {attachment.filename}: {attachment.url}")
+
     question_format = (
         f"DiscordMsg: {message.content} (From user: {message.author}, channel_name: {channel_name}, "
         f"channel_id: {message.channel.id}, timestamp_sent: {message.created_at.timestamp()})")
