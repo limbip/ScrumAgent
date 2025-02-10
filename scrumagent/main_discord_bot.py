@@ -4,6 +4,13 @@ import json
 import logging
 import os
 from pathlib import Path
+import pytz
+import requests
+from transformers.utils.chat_template_utils import description_re
+
+from config import scrum_promts
+from PIL import Image
+from io import BytesIO
 
 import discord
 import yaml
@@ -16,7 +23,7 @@ from langchain_core.messages import HumanMessage
 from scrumagent.build_agent_graph import build_graph
 from scrumagent.data_collector.discord_chat_collector import DiscordChatCollector
 from scrumagent.tools.taiga_tool import get_entity_by_ref_tool, get_project
-from scrumagent.utils import split_text_smart, init_discord_chroma_db
+from scrumagent.utils import split_text_smart, init_discord_chroma_db, get_image_description_via_llama
 
 mod_path = Path(__file__).parent
 
@@ -102,11 +109,12 @@ async def on_message(message: discord.Message):
     # Config for stateful agents
     config = {"configurable": {"user_id": channel_name, "thread_id": channel_name}}
 
-    # Format the question with the user and channel info
+    # Prepare the question format
     question_format = (
         f"DiscordMsg: {message.content} (From user: {message.author}, channel_name: {channel_name}, "
         f"channel_id: {message.channel.id}, timestamp_sent: {message.created_at.timestamp()})")
 
+    # Add the taiga slug and user story to the question format if the message is not a direct message
     if type(message.channel) != discord.DMChannel:
         taiga_slug = None
         if message.channel.id in DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP:
@@ -120,6 +128,37 @@ async def on_message(message: discord.Message):
         if channel_name.startswith("#"):
             question_format += f" (Corresponding taiga user story id: {channel_name.split(' ')[0][1:]})"
 
+
+    # Prepare the attachments. Currently only images and text files are supported.
+    attachments = message.attachments
+    attachments_prepared = []
+    for attachment in attachments:
+        response = requests.get(attachment.url)
+
+        if response.status_code != 200:
+            logger.error(f"Failed to retrieve the file. Status code: {response.status_code}. URL: {attachment.url}")
+            continue
+
+        if attachment.content_type.startswith("image"):
+            image = Image.open(BytesIO(response.content))  # Open image from response content
+            image.save("temp_image.jpg")  # Save the image to a temporary file
+            description = get_image_description_via_llama("temp_image.jpg")  # Get the image description
+            os.remove("temp_image.jpg")
+            attachments_prepared.append(f"Attached Image (Description): {description}")
+        #elif attachment.content_type.startswith("audio"):
+            # Whisper transcription
+        #    pass
+        elif attachment.content_type.startswith("text"):
+                text_content = response.text  # Get the content as a string
+                attachments_prepared.append(f"Attached Textfile: {text_content}")
+        else:
+            logger.error(f"Unknown attachment type: {attachment.content_type} for {attachment.filename}: {attachment.url}")
+
+    if attachments_prepared:
+        question_format += "\n" + "Attachments:"
+        question_format += "\n" + "\n".join(attachments_prepared)
+
+    # If the bot is not mentioned in the message, add the question to the state of the multi-agent graph.
     if not bot.user.mentioned_in(message) and type(message.channel) != discord.DMChannel:
         current_messages_state = multi_agent_graph.get_state(config=config).values.get("messages", [])
         current_messages_state.append(HumanMessage(content=question_format))
@@ -141,8 +180,8 @@ async def on_message(message: discord.Message):
     str_result = result["messages"][-1].content
     logger.info(f"Result: {str_result}")
 
-    # send multimple messages if the result is too long (2000 char is discord limit)
 
+    # send multimple messages if the result is too long (2000 char is discord limit)
     str_results_segments = split_text_smart(str_result)
     for segment in str_results_segments:
         await message.reply(segment, suppress_embeds=True)
@@ -150,25 +189,6 @@ async def on_message(message: discord.Message):
     # Deactivated for debugging purposes.
     # discord_chat_collector.get_links_from_messages(message.guild, message.channel, [message])
     # discord_chat_collector.get_files_from_messages(message.guild, message.channel, [message])
-
-
-@bot.event
-async def on_ready():
-    logger.info(f"Logged in as {bot.user} (ID: {bot.user.id})")
-    for assistant in data_collector_list:
-        await assistant.on_startup()
-    logger.info("Bots are ready!")
-
-    # Get all user_stories of active sprints
-    for project_slug in TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP.keys():
-        await manage_user_story_threads(project_slug)
-
-    await bot.tree.sync()
-
-    logger.info("Bot command tree synced!")
-
-    # await scrum_master_task()
-
 
 async def manage_user_story_threads(project_slug: str):
     logger.info("Manage user story threads started.")
@@ -189,37 +209,27 @@ async def manage_user_story_threads(project_slug: str):
         us_full_infos = json.loads(us_full_infos)
 
         if thread_name in thread_name_to_id:
-            logger.info(f"Skipping {thread_name} as it already exists.")
+            logger.info(f"Skipping '{thread_name}' as it already exists.")
             thread = taiga_thread_channel.get_thread(thread_name_to_id[thread_name])
+
+            tread_pins = await thread.pins()
+            if not tread_pins or len(tread_pins) == 0:
+                # Pin the first message in the thread. Safety measures, when something went wrong while initializing.
+                messages = [message async for message in thread.history(limit=1, oldest_first=True)]
+                await messages[0].pin()
         else:
             logger.info(f"Creating thread {thread_name}")
             if DISCORD_THREAD_TYPE == "public_thread":
                 thread = await taiga_thread_channel.create_thread(name=thread_name, type=ChannelType.public_thread)
             else:
                 thread = await taiga_thread_channel.create_thread(name=thread_name, type=ChannelType.private_thread)
-            msg = await thread.send(f"{thread_name}: {us_full_infos['description']}\n"
+            msg = await thread.send(f"**{thread_name}**:\n"
+                                    f"{us_full_infos['description']}\n"
                                     f"{us_full_infos['url']}")
             await msg.pin()
 
-            init_user_story_thread_promt = """
-            Analyze the initial state of user_story "{taiga_name}" (Ref: {taiga_ref}) in project_slug "{project_slug}". 
 
-            ### **Your Responsibilities:**
-
-            1. **Internal Analysis** *(Do not display in chat)*  
-               - Retrieve the **User Story Status** from Taiga: Task progress, Comments, Completion status, URL link
-
-            2. **Output Summary with emoticons for readability and team engagement (Displayed)**  
-                - **Summary:** Very brief and concise summarize of what the user stor is about and its tasks.
-                - **Suggenstions:** Make concrete suggestions for adding more tasks or concretizing the user story.
-
-
-            **Goal:**  
-            Deliver a clear, precise status update on User Story "#{taiga_ref} {taiga_name}" that reconciles the Taiga data.  
-            Make concrete suggestions for closing tickets or further processing open tasks.
-            """
-
-            init_user_story_thread_promt_format = init_user_story_thread_promt.format(taiga_ref=user_story.ref,
+            init_user_story_thread_promt_format = scrum_promts.init_user_story_thread_promt.format(taiga_ref=user_story.ref,
                                                                                       taiga_name=user_story.subject,
                                                                                       project_slug=project_slug)
 
@@ -266,6 +276,7 @@ async def manage_user_story_threads(project_slug: str):
                 # TODO: For some reason, thread.members is empty. Need the check bot permissions
                 if discord_user not in thread.members:
                     await thread.add_user(discord_user)
+                    await asyncio.sleep(0.5) # Sleep for 0.5 second to avoid rate limiting
 
     if project.is_backlog_activated:
         sprints = project.list_milestones(closed=False)
@@ -323,57 +334,16 @@ async def output_total_open_ai_cost():
 """
 
 
-@tasks.loop(time=datetime.time(hour=8, minute=0))
+@tasks.loop(time=datetime.time(hour=8, minute=0, tzinfo=pytz.timezone('Europe/Berlin')))
 async def scrum_master_task():
+    # Only run on weekdays
+    if datetime.datetime.today().weekday() > 4:
+        return
+
     logger.info("Scrum master started.")
     for project_slug in TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP.keys():
         await manage_user_story_threads(project_slug)
 
-        scrum_master_promt = """
-    Analyze the development progress of user_story "{taiga_name}" (Ref: {taiga_ref}) in project_slug "{project_slug}". 
-    
-    ### **Your Responsibilities:**
-    
-    1. **Internal Analysis** *(Do not display in chat)*  
-       - Retrieve the **User Story Status** from Taiga: Task progress, Comments, Completion status, URL link
-       - Retrieve the last 3 days of messages from the corresponding **Discord chat thread** "#{taiga_ref} {taiga_name}".
-       - **Compare Taiga and Discord data**:  
-          - Identify key decisions, updates, blockers, or issues discussed in Discord.
-          - Cross-check with Taiga tasks to create and update Taiga tasks as needed.
-    
-    2. **Output Summary with emoticons for readability and team engagement (Displayed)**  
-        - **Updated Tasks:** List recently updated or discussed tasks including the latest activities. Provide Taiga task links.
-        - **Open Tasks:** List tasks still in progress, blockers, or pending actions. Provide Taiga task links.
-        - **Discord Summary:** Very brief and concise summarize the last 3 days of Discord chat activity related to the User Story, that are not allready part of the tasks.
-    
-    3. **Daily Standup Prompt:** After the summary, post the following message in chat:
-    
-       _"Good Morning Team,_  
-       _Pun of the day: *[Insert creative, fantasy or computer science related nerdy pun here]*_  
-       _For today’s Daily Standup, please share:_  
-       - _What was completed yesterday?_  
-       - _What will be worked on today?_  
-       - _Are there any blockers or issues?_  
-       _Thank you!"_
-    
-    
-    4. **Follow-Up Action**
-       - After the standup, the team members should ask you to update the Taiga tasks based on the standup discussion.
-    ---
-    
-    ### **Guidelines:**
-    - Use the **taiga** and **discord_** tools to gather information.
-    - If more details are needed, escalate to the human_input agent.
-    - Provide a **concise, actionable summary** that aligns the Taiga and Discord data.
-    - Utilize **emoticons** for readability and team engagement.
-    - Execute all steps independently, ensuring clarity and timely updates.
-    
-    ---
-    
-    **Goal:**  
-    Deliver a clear, precise status update on User Story "#{taiga_ref} {taiga_name}" that reconciles the Taiga and Discord data.  
-    Make concrete suggestions for closing tickets or further processing open tasks and finally ask all developers to do a structured daily standup.
-    """
 
         taiga_thread_channel = bot.get_channel(TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP[project_slug])
         project = get_project(project_slug)
@@ -385,7 +355,7 @@ async def scrum_master_task():
             if userstory.is_closed or userstory.status_extra_info.get("is_closed", False):
                 continue
 
-            scrum_task_promt = scrum_master_promt.format(taiga_ref=taiga_ref, taiga_name=taiga_name,
+            scrum_task_promt = scrum_promts.scrum_master_promt.format(taiga_ref=taiga_ref, taiga_name=taiga_name,
                                                          project_slug=project_slug)
             config = {"configurable": {"user_id": thread.name, "thread_id": thread.name}}
 
@@ -406,6 +376,26 @@ async def scrum_master_task():
             str_results_segments = split_text_smart(str_result)
             for segment in str_results_segments:
                 await thread.send(segment, suppress_embeds=True)
+
+
+@bot.event
+async def on_ready():
+    logger.info(f"Logged in as {bot.user} (ID: {bot.user.id})")
+    for assistant in data_collector_list:
+        await assistant.on_startup()
+    logger.info("Bots are ready!")
+
+    # Get all user_stories of active sprints
+    for project_slug in TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP.keys():
+        await manage_user_story_threads(project_slug)
+
+    await bot.tree.sync()
+    logger.info("Bot command tree synced!")
+
+    scrum_master_task.start()
+    daily_datacollector_task.start()
+    update_taiga_threads.start()
+    # await scrum_master_task()
 
 
 if __name__ == "__main__":

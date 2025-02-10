@@ -296,7 +296,7 @@ def get_severity(project_slug: str, severity_id: int) -> Optional[Dict]:
         return project.severities.get(severity_id).to_dict()
     except Exception as e:
         return {"error": str(e), "code": 500}
-    return None
+    #return None
 
 
 @tool(parse_docstring=True)
@@ -304,25 +304,27 @@ def create_entity_tool(project_slug: str,
                        entity_type: str,
                        subject: str,
                        status: str,
-                       description: str = "",
+                       description: Optional[str] = "",
                        parent_ref: Optional[int] = None,
                        assign_to: Optional[str] = None,
+                       due_date: Optional[str] = None,
                        tags: List[str] = []) -> str:
     """
-    Create new tasks or issues.
+    Create new userstory, tasks or issues.
     Use when:
       - User requests creation of new work items
-      - Need to break down user stories into tasks
+      - Need to break down userstories into tasks
       - Reporting new issues/bugs
 
     Args:
         project_slug: Project identifier
-        entity_type: 'task' or 'issue'
+        entity_type: 'userstory' , 'task' or 'issue'
         subject: Short title/name
         status: State of the entity
         description: Detailed description (optional)
-        parent_ref: For tasks - user story reference
+        parent_ref: For tasks - userstory reference
         assign_to: Username to assign (optional)
+        due_date: Deadline for the task (Format: YYYY-MM-DD) (optional)
         tags: List of tags (optional)
 
     Returns:
@@ -336,12 +338,12 @@ def create_entity_tool(project_slug: str,
     if not project:
         return json.dumps({"error": f"Project '{project_slug}' not found", "code": 404}, indent=2)
 
-    # Resolve parent user story if needed
+    # Resolve parent userstory if needed
     parent_us = None
     if parent_ref and norm_type == "task":
         parent_us = project.get_userstory_by_ref(parent_ref)
         if not parent_us:
-            return json.dumps({"error": f"Parent user story {parent_ref} not found", "code": 404}, indent=2)
+            return json.dumps({"error": f"Parent userstory {parent_ref} not found", "code": 404}, indent=2)
 
     # Resolve assignee
     assignee_id = None
@@ -356,17 +358,18 @@ def create_entity_tool(project_slug: str,
         "subject": subject[:500],
         "description": description[:2000],
         "tags": tags,
-        "assigned_to": assignee_id
+        "assigned_to": assignee_id,
+        "due_date": due_date
     }
 
     try:
         if norm_type == "task":
             if not parent_us:
-                return json.dumps({"error": "Tasks require a parent user story", "code": 400}, indent=2)
+                return json.dumps({"error": "Tasks require a parent userstory", "code": 400}, indent=2)
             create_data["status"] = find_status_ids(project_slug=project_slug, entity_type=entity_type, query=status)[0]
             entity = parent_us.add_task(**create_data)
-        # elif norm_type == "us":
-        #    entity = project.add_user_story(**create_data)
+        elif norm_type == "us":
+            entity = project.add_user_story(**create_data)
         elif norm_type == "issue":
             # Resolve issue type
             issue_type_ids = find_issue_type_ids(project_slug, "Bug")  # Example value
@@ -406,6 +409,7 @@ def create_entity_tool(project_slug: str,
         "type": norm_type,
         "ref": entity.ref,
         "subject": entity.subject,
+        "due_date": due_date,
         "url": f"{TAIGA_URL}/project/{project_slug}/{norm_type}/{entity.ref}",
         "assigned_to": assign_to,
         "parent": parent_ref
@@ -559,6 +563,7 @@ Example response for "John's open UX tasks":
                 "status": status_name,
                 "assigned_to": get_user(entity.assigned_to)["username"] if entity.assigned_to else None,
                 "created_date": entity.created_date if entity.created_date else None,
+                "due_date": entity.due_date,
                 "url": f"{TAIGA_URL}/project/{project_slug}/{norm_type}/{entity.ref}"
             })
 
@@ -572,7 +577,7 @@ Example response for "John's open UX tasks":
 @tool(parse_docstring=True)
 def get_entity_by_ref_tool(project_slug: str, entity_ref: int, entity_type: str) -> str:
     """
-    Retrieve any Taiga entity (task/user story/issue) by its visible reference number.
+    Retrieve any Taiga entity (task/userstory/issue) by its visible reference number.
     Use when:
       - A direct URL to an entity is provided.
       - Verifying existence of specific items.
@@ -593,6 +598,7 @@ def get_entity_by_ref_tool(project_slug: str, entity_ref: int, entity_type: str)
             "status": "Status Name",
             "subject": "Entity subject",
             "description": "Entity description",
+            "due_date": "2022-12-31",
             "url": "http://TAIGA_URL/project/project-slug/task/123",
             "related": {
                 "comments": 3,
@@ -635,6 +641,7 @@ def get_entity_by_ref_tool(project_slug: str, entity_ref: int, entity_type: str)
         "status": status_name,
         "subject": entity.subject,
         "description": entity.description,
+        "due_date": entity.due_date,
         "url": f"{TAIGA_URL}/project/{project_slug}/{norm_type}/{entity.ref}",
         "related": {"comments": len(getattr(entity, "comments", []))}
     }
@@ -649,7 +656,7 @@ def get_entity_by_ref_tool(project_slug: str, entity_ref: int, entity_type: str)
         watchers = [get_user(w) for w in watchers]
     result["watchers"] = watchers
 
-    # For user stories, include the count of related tasks.
+    # For userstories, include the count of related tasks.
     if norm_type == "us":
         result["related"]["tasks"] = [
             {
@@ -665,9 +672,9 @@ def get_entity_by_ref_tool(project_slug: str, entity_ref: int, entity_type: str)
 
 @tool(parse_docstring=True)
 def update_entity_by_ref_tool(project_slug: str, entity_ref: int, entity_type: str, description: Optional[str] = None,
-                              assign_to: Optional[str] = None, status: Optional[str] = None) -> str:
+                              assign_to: Optional[str] = None, status: Optional[str] = None, due_data: Optional[str] = None) -> str:
     """
-    Update a Taiga entity (task/user story/issue) by its visible reference number.
+    Update a Taiga entity (task/userstory/issue) by its visible reference number.
     Use when:
       - Specific fields of an entity need to be modified (e.g., status, assignee, description).
 
@@ -678,6 +685,7 @@ def update_entity_by_ref_tool(project_slug: str, entity_ref: int, entity_type: s
         description (str): New description for the entity.
         assign_to (str): Username of the user to assign the entity to.
         status (str): New status for the entity.
+        due_data (str): New due date for the entity (Format YYYY-MM-DD).
 
     Returns:
         A JSON message indicating success or an error message.
@@ -713,6 +721,9 @@ def update_entity_by_ref_tool(project_slug: str, entity_ref: int, entity_type: s
         if not user:
             return json.dumps({"error": f"User '{assign_to}' not found", "code": 404}, indent=2)
         updates["assigned_to"] = user[0]["id"]
+
+    if due_data:
+        updates["due_date"] = due_data
 
     try:
         entity.update(**updates)
@@ -781,4 +792,3 @@ def add_comment_by_ref_tool(project_slug: str, entity_ref: int, entity_type: str
         "url": f"{TAIGA_URL}/project/{project_slug}/{norm_type}/{entity_ref}",
         "comment_preview": f"{truncated_comment[:50]}..." if len(truncated_comment) > 50 else truncated_comment
     }, indent=2)
-

@@ -2,11 +2,24 @@ import os
 import re
 from pathlib import Path
 
+import ollama
 import chromadb
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
 
 mod_path = Path(__file__).parent
+
+
+def get_image_description_via_llama(image_path: str) -> str:
+    response = ollama.chat(
+        model='llama3.2-vision',
+        messages=[{
+            'role': 'user',
+            'content': 'What is in this image?',
+            'images': [image_path]
+        }]
+    )
+    return response['message']['content']
 
 
 def init_discord_chroma_db():
