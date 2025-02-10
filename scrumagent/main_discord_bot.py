@@ -189,12 +189,12 @@ async def manage_user_story_threads(project_slug: str):
             ### **Your Responsibilities:**
 
             1. **Internal Analysis** *(Do not display in chat)*  
-               - Retrieve the **User Story Status** from Taiga: Task progress, Comments, Completion status, URL link
+               - Retrieve the **User Story Status** from Taiga: Task progress, Comments, Completion status, Due date, URL link
 
             2. **Output Summary with emoticons for readability and team engagement (Displayed)**  
                 - **Summary:** Very brief and concise summarize of what the user stor is about and its tasks.
                 - **Suggenstions:** Make concrete suggestions for adding more tasks or concretizing the user story.
-
+                
 
             **Goal:**  
             Deliver a clear, precise status update on User Story "#{taiga_ref} {taiga_name}" that reconciles the Taiga data.  
@@ -321,7 +321,7 @@ async def scrum_master_task():
     ### **Your Responsibilities:**
     
     1. **Internal Analysis** *(Do not display in chat)*  
-       - Retrieve the **User Story Status** from Taiga: Task progress, Comments, Completion status, URL link
+       - Retrieve the **User Story Status** from Taiga: Task progress, Comments, Completion status, Due date, URL link
        - Retrieve the last 3 days of messages from the corresponding **Discord chat thread** "#{taiga_ref} {taiga_name}".
        - **Compare Taiga and Discord data**:  
           - Identify key decisions, updates, blockers, or issues discussed in Discord.
@@ -335,7 +335,7 @@ async def scrum_master_task():
     3. **Daily Standup Prompt:** After the summary, post the following message in chat:
     
        _"Good Morning Team,_  
-       _Pun of the day: *[Insert creative, fantasy or computer science related nerdy pun here]*_  
+       _Pun of the day: *[Insert creative, fantasy (eg. Lord of the Rings or Star Wars) and/or computer science related nerdy pun here]*_  
        _For today’s Daily Standup, please share:_  
        - _What was completed yesterday?_  
        - _What will be worked on today?_  
