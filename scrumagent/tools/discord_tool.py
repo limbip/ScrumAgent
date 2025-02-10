@@ -319,16 +319,3 @@ def discord_list_channels_with_threads_tool(guild_id: str) -> str:
             pass
 
     return json.dumps(channels_list)
-
-
-if __name__ == '__main__':
-    # print(discord_get_recent_messages_tool({"channel_id": "1334118145232736266", "limit": 10}))
-    # print("Done")
-    # print(discord_channel_msgs_tool({
-    #     "after": 1738323935,
-    #     "limit": 10
-    # }))
-    # print(discord_send_message_tool({"channel_id": "1334118145232736266", "message": "Hello from Autobot!"}))
-    from pprint import pprint
-
-    pprint(json.loads(discord_list_channels_with_threads_tool({"guild_id": "869181831851941948"})))
