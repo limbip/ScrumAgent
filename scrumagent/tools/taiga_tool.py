@@ -672,7 +672,7 @@ def get_entity_by_ref_tool(project_slug: str, entity_ref: int, entity_type: str)
 
 @tool(parse_docstring=True)
 def update_entity_by_ref_tool(project_slug: str, entity_ref: int, entity_type: str, description: Optional[str] = None,
-                              assign_to: Optional[str] = None, status: Optional[str] = None) -> str:
+                              assign_to: Optional[str] = None, status: Optional[str] = None, due_data: Optional[str] = None) -> str:
     """
     Update a Taiga entity (task/user story/issue) by its visible reference number.
     Use when:
@@ -685,6 +685,7 @@ def update_entity_by_ref_tool(project_slug: str, entity_ref: int, entity_type: s
         description (str): New description for the entity.
         assign_to (str): Username of the user to assign the entity to.
         status (str): New status for the entity.
+        due_data (str): New due date for the entity (Format YYYY-MM-DD).
 
     Returns:
         A JSON message indicating success or an error message.
@@ -720,6 +721,9 @@ def update_entity_by_ref_tool(project_slug: str, entity_ref: int, entity_type: s
         if not user:
             return json.dumps({"error": f"User '{assign_to}' not found", "code": 404}, indent=2)
         updates["assigned_to"] = user[0]["id"]
+
+    if due_data:
+        updates["due_date"] = due_data
 
     try:
         entity.update(**updates)
