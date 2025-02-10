@@ -164,12 +164,11 @@ Scrum Agent offers a range of capabilities to support agile project management:
   - **Send Messages**
   - **Create Public Threads**
   - **Create Private Threads**
+  - **Manage Threads**
   - **Send Messages in Threads**
   - **Manage Messages**
   - **Read Message History**
   - **Add Reactions**
-  - **Manage Messages**
-  - **Manage Threads**
 - **Enable Intents:**  
   Go to the **"Bot"** tab and enable:
   - **Server Members Intent**
