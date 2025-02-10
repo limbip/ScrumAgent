@@ -353,6 +353,7 @@ async def scrum_master_task():
     - Provide a **concise, actionable summary** that aligns the Taiga and Discord data.
     - Utilize **emoticons** for readability and team engagement.
     - Execute all steps independently, ensuring clarity and timely updates.
+    - If due dates are missing, motivate the team to update the tasks and provide a new due date.
     
     ---
     
