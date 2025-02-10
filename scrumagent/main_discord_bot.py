@@ -223,7 +223,8 @@ async def manage_user_story_threads(project_slug: str):
                 thread = await taiga_thread_channel.create_thread(name=thread_name, type=ChannelType.public_thread)
             else:
                 thread = await taiga_thread_channel.create_thread(name=thread_name, type=ChannelType.private_thread)
-            msg = await thread.send(f"{thread_name}: {us_full_infos['description']}\n"
+            msg = await thread.send(f"**{thread_name}**:\n"
+                                    f"{us_full_infos['description']}\n"
                                     f"{us_full_infos['url']}")
             await msg.pin()
 
