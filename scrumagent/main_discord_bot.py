@@ -397,9 +397,10 @@ async def on_ready():
         await assistant.on_startup()
     logger.info("Bots are ready!")
 
+    # Runs with start later
     # Get all user_stories of active sprints
-    for project_slug in TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP.keys():
-        await manage_user_story_threads(project_slug)
+    # project_slug in TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP.keys():
+    #    await manage_user_story_threads(project_slug)
 
     await bot.tree.sync()
     logger.info("Bot command tree synced!")
