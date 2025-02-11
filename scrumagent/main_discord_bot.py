@@ -196,9 +196,9 @@ async def manage_user_story_threads(project_slug: str):
     taiga_thread_channel = bot.get_channel(int(TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP[project_slug]))
 
     # Get all threads in the channel
-    thread_name_to_id = {}
+    thread_name_to_discord_thread = {}
     for thread in taiga_thread_channel.threads:
-        thread_name_to_id[thread.name] = thread.id
+        thread_name_to_discord_thread[thread.name] = thread
 
     async def get_all_archived_threads(channel, private):
         threads = [archived_thread async for archived_thread in channel.archived_threads(private=private, joined=private, limit=100)]
@@ -208,8 +208,8 @@ async def manage_user_story_threads(project_slug: str):
     all_archived_threads += await get_all_archived_threads(taiga_thread_channel, private=False)
 
     for thread in all_archived_threads:
-        if thread.name not in thread_name_to_id:
-            thread_name_to_id[thread.name] = thread.id
+        if thread.name not in thread_name_to_discord_thread:
+            thread_name_to_discord_thread[thread.name] = thread
 
     async def manage_user_story(user_story):
         thread_name = f"#{user_story.ref} {user_story.subject}"
@@ -219,23 +219,23 @@ async def manage_user_story_threads(project_slug: str):
                                                 "entity_type": "userstory"})
         us_full_infos = json.loads(us_full_infos)
 
-        if thread_name in thread_name_to_id:
+        if thread_name in thread_name_to_discord_thread:
             logger.info(f"Skipping '{thread_name}' as it already exists.")
-            thread = taiga_thread_channel.get_thread(thread_name_to_id[thread_name])
+            discord_thread = thread_name_to_discord_thread[thread_name]
 
-            tread_pins = await thread.pins()
+            tread_pins = await discord_thread.pins()
             if not tread_pins or len(tread_pins) == 0:
                 # Pin the first message in the thread. Safety measures, when something went wrong while initializing.
-                messages = [message async for message in thread.history(limit=1, oldest_first=True)]
+                messages = [message async for message in discord_thread.history(limit=1, oldest_first=True)]
                 await messages[0].pin()
         else:
             logger.info(f"Creating thread {thread_name}")
             if DISCORD_THREAD_TYPE == "public_thread":
                 # auto_archive_duration is in minutes (4320 = 3 days)
-                thread = await taiga_thread_channel.create_thread(name=thread_name, type=ChannelType.public_thread, auto_archive_duration=4320)
+                discord_thread = await taiga_thread_channel.create_thread(name=thread_name, type=ChannelType.public_thread, auto_archive_duration=4320)
             else:
-                thread = await taiga_thread_channel.create_thread(name=thread_name, type=ChannelType.private_thread, auto_archive_duration=4320)
-            msg = await thread.send(f"**{thread_name}**:\n"
+                discord_thread = await taiga_thread_channel.create_thread(name=thread_name, type=ChannelType.private_thread, auto_archive_duration=4320)
+            msg = await discord_thread.send(f"**{thread_name}**:\n"
                                     f"{us_full_infos['description']}\n"
                                     f"{us_full_infos['url']}")
             await msg.pin()
@@ -261,10 +261,10 @@ async def manage_user_story_threads(project_slug: str):
 
             str_results_segments = split_text_smart(str_result)
             for segment in str_results_segments:
-                msg = await thread.send(segment, suppress_embeds=True)
-                # await msg.pin()
+                await discord_thread.send(segment, suppress_embeds=True)
 
-            thread_name_to_id[thread_name] = thread.id
+            thread_name_to_discord_thread[thread_name] = discord_thread
+
 
         associated_users = [w["id"] for w in us_full_infos["watchers"]]
         if us_full_infos["assigned_to"]:
