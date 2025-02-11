@@ -197,8 +197,8 @@ async def manage_user_story_threads(project_slug: str):
 
     # Get all threads in the channel
     thread_name_to_discord_thread = {}
-    for thread in taiga_thread_channel.threads:
-        thread_name_to_discord_thread[thread.name] = thread
+    for d_thread in taiga_thread_channel.threads:
+        thread_name_to_discord_thread[d_thread.name] = d_thread
 
     async def get_all_archived_threads(channel, private):
         threads = [archived_thread async for archived_thread in channel.archived_threads(private=private, joined=private, limit=100)]
@@ -207,9 +207,9 @@ async def manage_user_story_threads(project_slug: str):
     all_archived_threads = await get_all_archived_threads(taiga_thread_channel, private=True)
     all_archived_threads += await get_all_archived_threads(taiga_thread_channel, private=False)
 
-    for thread in all_archived_threads:
-        if thread.name not in thread_name_to_discord_thread:
-            thread_name_to_discord_thread[thread.name] = thread
+    for d_thread in all_archived_threads:
+        if d_thread.name not in thread_name_to_discord_thread:
+            thread_name_to_discord_thread[d_thread.name] = d_thread
 
     async def manage_user_story(user_story):
         thread_name = f"#{user_story.ref} {user_story.subject}"
@@ -245,8 +245,8 @@ async def manage_user_story_threads(project_slug: str):
                                                                                       taiga_name=user_story.subject,
                                                                                       project_slug=project_slug)
 
-            config = {"configurable": {"user_id": thread.name, "thread_id": f"{thread.name} thread_init"}}
-            async with thread.typing():
+            config = {"configurable": {"user_id": discord_thread.name, "thread_id": f"{discord_thread.name} thread_init"}}
+            async with discord_thread.typing():
                 loop = asyncio.get_running_loop()
                 # Use run_in_executor to run the blocking invocation in a separate thread.
                 result = await loop.run_in_executor(None,
@@ -286,8 +286,8 @@ async def manage_user_story_threads(project_slug: str):
                 discord_user = discord.utils.get(taiga_thread_channel.members, name=discord_user_name)
 
                 # TODO: For some reason, thread.members is empty. Need the check bot permissions
-                if discord_user not in thread.members:
-                    await thread.add_user(discord_user)
+                if discord_user not in discord_thread.members:
+                    await discord_thread.add_user(discord_user)
                     await asyncio.sleep(0.5) # Sleep for 0.5 second to avoid rate limiting
 
     if project.is_backlog_activated:
@@ -397,9 +397,10 @@ async def on_ready():
         await assistant.on_startup()
     logger.info("Bots are ready!")
 
+    # Runs with start later
     # Get all user_stories of active sprints
-    for project_slug in TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP.keys():
-        await manage_user_story_threads(project_slug)
+    # project_slug in TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP.keys():
+    #    await manage_user_story_threads(project_slug)
 
     await bot.tree.sync()
     logger.info("Bot command tree synced!")
