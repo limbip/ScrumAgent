@@ -47,7 +47,10 @@ with open(mod_path / "../config/taiga_discord_maps.yaml") as f:
 
     INTERACTABLE_DISCORD_CHANNELS = yaml_config["interactable_discord_channels"]
     TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP = yaml_config["taiga_slag_to_discord_channel_map"]
+
     DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP = {v: k for k, v in TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP.items()}
+    other_discord_channel_to_taiga_slag_map = yaml_config["other_discord_channel_to_taiga_slag_map"]
+    DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP.update(other_discord_channel_to_taiga_slag_map)
 
     TAIGA_USER_TO_DISCORD_USER_MAP = yaml_config["taiga_discord_user_map"]
 
@@ -118,7 +121,7 @@ async def on_message(message: discord.Message):
         taiga_slug = None
         if message.channel.id in DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP:
             taiga_slug = DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP[message.channel.id]
-        elif message.channel.parent.id in DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP:
+        elif message.channel.parent is not None and message.channel.parent.id in DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP:
             taiga_slug = DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP[message.channel.parent.id]
 
         if taiga_slug:
@@ -137,7 +140,8 @@ async def on_message(message: discord.Message):
         if response.status_code != 200:
             logger.error(f"Failed to retrieve the file. Status code: {response.status_code}. URL: {attachment.url}")
             continue
-
+        attachments_prepared.append(f"Attached File: {attachment.filename} (Type: {attachment.content_type}) - {attachment.url}")
+        '''
         if attachment.content_type.startswith("image"):
             image = Image.open(BytesIO(response.content))  # Open image from response content
             image.save("temp_image.jpg")  # Save the image to a temporary file
@@ -152,6 +156,7 @@ async def on_message(message: discord.Message):
                 attachments_prepared.append(f"Attached Textfile: {text_content}")
         else:
             logger.error(f"Unknown attachment type: {attachment.content_type} for {attachment.filename}: {attachment.url}")
+        '''
 
     if attachments_prepared:
         question_format += "\n" + "Attachments:"

@@ -26,7 +26,7 @@ discord_search_agent = create_react_agent(
     tools=[
         discord_search_tool,
         discord_channel_msgs_tool,
-        discord_get_recent_messages_tool,
+        # discord_get_recent_messages_tool,
         # discord_send_message_tool,
         discord_list_channels_with_threads_tool
     ],
@@ -54,12 +54,7 @@ discord_search_agent = create_react_agent(
         "   - **When to Use:** Use this tool when a user requests to see past messages (e.g., \"show me the messages from #general yesterday\").\n"
         "   - **Output:** Provides a formatted string of messages, including information on the user, channel, and timestamp.\n\n"
 
-        "3. **discord_get_recent_messages_tool**\n"
-        "   - **Purpose:** Fetches the latest messages from a designated Discord channel or thread using the Discord API.\n"
-        "   - **When to Use:** Call this tool when up-to-date conversation context is required (e.g., \"what are the latest messages in #announcements?\").\n"
-        "   - **Output:** Delivers a formatted summary of the most recent messages, including content, author, and timestamp.\n\n"
-
-        "4. **discord_list_channels_with_threads_tool**\n"
+        "3. **discord_list_channels_with_threads_tool**\n"
         "   - **Purpose:** Lists all channels in the Discord guild along with their active threads in a nested JSON format.\n"
         "   - **When to Use:** Invoke this tool when an overview of the server’s channels and threads is needed or when searching for a specific channel or thread ID.\n"
         "   - **Output:** Provides a JSON-formatted string that details each channel (with ID and name) and its active threads.\n\n"

@@ -1,5 +1,7 @@
 import json
 import os
+import requests
+import tempfile
 from datetime import timedelta, datetime
 from typing import Optional, Dict, List
 
@@ -792,3 +794,79 @@ def add_comment_by_ref_tool(project_slug: str, entity_ref: int, entity_type: str
         "url": f"{TAIGA_URL}/project/{project_slug}/{norm_type}/{entity_ref}",
         "comment_preview": f"{truncated_comment[:50]}..." if len(truncated_comment) > 50 else truncated_comment
     }, indent=2)
+
+
+@tool(parse_docstring=True)
+def add_attachment_by_ref_tool(project_slug: str, entity_ref: int, entity_type: str, attachment_url: str, content_type: str,
+                               description: str = "") -> str:
+    """
+    Add attachment (images and other files) to any Taiga entity using its visible reference. Use when:
+    - User provides direct URL to an item
+    - Need to share screenshots, logs, or other files
+    - Providing additional context to tasks/issues/userstories
+
+    Args:
+        project_slug: From URL path (e.g. 'development')
+        entity_ref: Visible number in entity URL
+        entity_type: 'task', 'userstory', or 'issue'
+        attachment_url: Attachment URL to add
+        content_type: Content type of the attachment (e.g. 'image/png', 'application/pdf')
+        description: Description of the attachment (optional)
+
+    Returns:
+        JSON structure: {
+            "added": bool,
+            "project": str,
+            "type": str,
+            "ref": int,
+            "url": str,
+            "attachments": dict
+        }
+
+    Examples:
+        add_attachment_by_ref_tool("mobile-app", 1421, "task", "http://www.xyz.com/screenshot.png", "image/png")
+        add_attachment_by_ref_tool("docs", 887, "userstory", "http://www.xyz.com/specs.pdf", "application/pdf")
+    """
+    norm_type = normalize_entity_type(entity_type)
+    if not norm_type:
+        return json.dumps({"error": f"Invalid entity type '{entity_type}'", "code": 400}, indent=2)
+
+    project = get_project(project_slug)
+    if not project:
+        return json.dumps({"error": f"Project '{project_slug}' not found", "code": 404}, indent=2)
+
+    try:
+        entity = fetch_entity(project, norm_type, entity_ref)
+    except Exception as e:
+        return json.dumps({"error": f"Error fetching entity: {str(e)}", "code": 500}, indent=2)
+
+    if not entity:
+        return json.dumps({"error": f"{entity_type} {entity_ref} not found", "code": 404}, indent=2)
+
+    try:
+        ext = content_type.split('/')[-1]  # converts response headers mime type to an extension (may not work with everything)
+        r = requests.get(attachment_url, stream=True)
+        with tempfile.NamedTemporaryFile(suffix=f".{ext}", delete=False) as tmp_file:
+            for chunk in r.iter_content(1024):  # iterate on stream using 1KB packets
+                tmp_file.write(chunk)
+            temp_file_path = tmp_file.name
+        attachment = entity.attach(temp_file_path, description=description)
+        #entity.add_comment(truncated_comment)
+    except Exception as e:
+        return json.dumps({"error": f"Comment failed: {str(e)}", "code": 500}, indent=2)
+    finally:
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+
+    att_dict = attachment.to_dict()
+    att_dict.pop("url", None)
+    return json.dumps({
+        "added": True,
+        "project": project.name,
+        "type": norm_type,
+        "ref": entity_ref,
+        "url": f"{TAIGA_URL}/project/{project_slug}/{norm_type}/{entity_ref}",
+        "attachments": att_dict,
+    }, indent=2)
+
+
