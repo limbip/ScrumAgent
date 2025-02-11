@@ -195,9 +195,19 @@ async def manage_user_story_threads(project_slug: str):
     project = get_project(project_slug)
     taiga_thread_channel = bot.get_channel(int(TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP[project_slug]))
 
+    # Get all threads in the channel
     thread_name_to_id = {}
     for thread in taiga_thread_channel.threads:
         thread_name_to_id[thread.name] = thread.id
+
+    async def get_all_archived_threads(channel):
+        private = DISCORD_THREAD_TYPE == "private_thread"
+        threads = [archived_thread async for archived_thread in channel.archived_threads(private=private, joined=private, limit=100)]
+        return threads
+    all_archived_threads = await get_all_archived_threads(taiga_thread_channel)
+    for thread in all_archived_threads:
+        if thread.name not in thread_name_to_id:
+            thread_name_to_id[thread.name] = thread.id
 
     async def manage_user_story(user_story):
         thread_name = f"#{user_story.ref} {user_story.subject}"
