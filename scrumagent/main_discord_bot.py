@@ -231,9 +231,10 @@ async def manage_user_story_threads(project_slug: str):
         else:
             logger.info(f"Creating thread {thread_name}")
             if DISCORD_THREAD_TYPE == "public_thread":
-                thread = await taiga_thread_channel.create_thread(name=thread_name, type=ChannelType.public_thread)
+                # auto_archive_duration is in minutes (4320 = 3 days)
+                thread = await taiga_thread_channel.create_thread(name=thread_name, type=ChannelType.public_thread, auto_archive_duration=4320)
             else:
-                thread = await taiga_thread_channel.create_thread(name=thread_name, type=ChannelType.private_thread)
+                thread = await taiga_thread_channel.create_thread(name=thread_name, type=ChannelType.private_thread, auto_archive_duration=4320)
             msg = await thread.send(f"**{thread_name}**:\n"
                                     f"{us_full_infos['description']}\n"
                                     f"{us_full_infos['url']}")
