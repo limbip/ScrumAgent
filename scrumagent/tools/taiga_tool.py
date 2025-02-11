@@ -797,7 +797,8 @@ def add_comment_by_ref_tool(project_slug: str, entity_ref: int, entity_type: str
 
 
 @tool(parse_docstring=True)
-def add_attachment_by_ref_tool(project_slug: str, entity_ref: int, entity_type: str, attachment_url: str, content_type: str) -> str:
+def add_attachment_by_ref_tool(project_slug: str, entity_ref: int, entity_type: str, attachment_url: str, content_type: str,
+                               description: str = "") -> str:
     """
     Add attachment (images and other files) to any Taiga entity using its visible reference. Use when:
     - User provides direct URL to an item
@@ -810,6 +811,7 @@ def add_attachment_by_ref_tool(project_slug: str, entity_ref: int, entity_type: 
         entity_type: 'task', 'userstory', or 'issue'
         attachment_url: Attachment URL to add
         content_type: Content type of the attachment (e.g. 'image/png', 'application/pdf')
+        description: Description of the attachment (optional)
 
     Returns:
         JSON structure: {
@@ -848,7 +850,7 @@ def add_attachment_by_ref_tool(project_slug: str, entity_ref: int, entity_type: 
             for chunk in r.iter_content(1024):  # iterate on stream using 1KB packets
                 tmp_file.write(chunk)
             temp_file_path = tmp_file.name
-        attachment = entity.attach(temp_file_path)
+        attachment = entity.attach(temp_file_path, description=description)
         #entity.add_comment(truncated_comment)
     except Exception as e:
         return json.dumps({"error": f"Comment failed: {str(e)}", "code": 500}, indent=2)
