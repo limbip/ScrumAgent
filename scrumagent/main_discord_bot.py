@@ -140,7 +140,8 @@ async def on_message(message: discord.Message):
         if response.status_code != 200:
             logger.error(f"Failed to retrieve the file. Status code: {response.status_code}. URL: {attachment.url}")
             continue
-
+        attachments_prepared.append(f"Attached File: {attachment.filename} (Type: {attachment.content_type}) - {attachment.url}")
+        '''
         if attachment.content_type.startswith("image"):
             image = Image.open(BytesIO(response.content))  # Open image from response content
             image.save("temp_image.jpg")  # Save the image to a temporary file
@@ -155,6 +156,7 @@ async def on_message(message: discord.Message):
                 attachments_prepared.append(f"Attached Textfile: {text_content}")
         else:
             logger.error(f"Unknown attachment type: {attachment.content_type} for {attachment.filename}: {attachment.url}")
+        '''
 
     if attachments_prepared:
         question_format += "\n" + "Attachments:"
