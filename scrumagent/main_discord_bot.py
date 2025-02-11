@@ -121,7 +121,7 @@ async def on_message(message: discord.Message):
         taiga_slug = None
         if message.channel.id in DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP:
             taiga_slug = DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP[message.channel.id]
-        elif message.channel.parent.id in DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP:
+        elif message.channel.parent is not None and message.channel.parent.id in DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP:
             taiga_slug = DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP[message.channel.parent.id]
 
         if taiga_slug:

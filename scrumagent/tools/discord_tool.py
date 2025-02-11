@@ -113,6 +113,7 @@ def discord_channel_msgs_tool(channel_name: str = None, before: int = None, afte
 @tool(parse_docstring=True)
 def discord_get_recent_messages_tool(channel_id: str, limit: int = 100) -> str:
     """
+    Decepricated
     Use this tool to fetch the most recent messages from a specific Discord channel or thread via the Discord API.
 
     Example usage:

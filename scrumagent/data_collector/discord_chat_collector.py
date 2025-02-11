@@ -68,7 +68,8 @@ class DiscordChatCollector(BaseCollector):
                                   "author_id": msg.author.id, "author_name": msg.author.name,
                                   "source": self.DB_IDENTIFIER, "msg_type": str(msg.type),
                                   "flags": str(msg.flags),
-                                  "msg_reference": f"{self.DB_IDENTIFIER}_{msg.reference.message_id}" if msg.reference else "None"})
+                                  "msg_reference": f"{self.DB_IDENTIFIER}_{msg.reference.message_id}" if msg.reference else "None",
+                                  "attachments": f"{[attachment.to_dict() for attachment in msg.attachments] if msg.attachments else []}"})
 
         if len(ids) > 0:
             print(f"Adding {len(ids)} messages to the database")
