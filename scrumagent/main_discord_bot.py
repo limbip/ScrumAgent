@@ -47,7 +47,10 @@ with open(mod_path / "../config/taiga_discord_maps.yaml") as f:
 
     INTERACTABLE_DISCORD_CHANNELS = yaml_config["interactable_discord_channels"]
     TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP = yaml_config["taiga_slag_to_discord_channel_map"]
+
     DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP = {v: k for k, v in TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP.items()}
+    other_discord_channel_to_taiga_slag_map = yaml_config["other_discord_channel_to_taiga_slag_map"]
+    DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP.update(other_discord_channel_to_taiga_slag_map)
 
     TAIGA_USER_TO_DISCORD_USER_MAP = yaml_config["taiga_discord_user_map"]
 

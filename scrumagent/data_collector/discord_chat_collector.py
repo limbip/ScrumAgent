@@ -30,10 +30,10 @@ class DiscordChatCollector(BaseCollector):
         for guild in self.bot.guilds:
             channel_que = [guild.channels, guild.threads]
             for channel in itertools.chain(*channel_que):
+                print(f"Checking channel: {channel.name}, type: {channel.type}, id: {channel.id}")
                 if (self.filter_channels and channel.name not in self.filter_channels and
                         (type(channel) != Thread or channel.parent.name not in self.filter_channels)):
                     continue
-                print(f"Checking channel: {channel.name}, type: {channel.type}, id: {channel.id}")
                 if isinstance(channel, discord.TextChannel) or isinstance(channel, discord.Thread):
                     last_timestamp = self.get_last_msg_timestamps_in_db(guild, channel)
                     try:
