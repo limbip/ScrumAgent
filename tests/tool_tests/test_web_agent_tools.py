@@ -1,8 +1,16 @@
 import unittest
+
 from dotenv import load_dotenv
+
 load_dotenv()
 
-from autobotcentral.agents import web_agent
+import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
+
+
+from scrumagent.agents import web_agent
 
 
 class WebAgentToolsTest(unittest.TestCase):
@@ -32,5 +40,5 @@ class WebAgentToolsTest(unittest.TestCase):
         self.assertTrue("Summary:" in result)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
