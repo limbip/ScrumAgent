@@ -200,11 +200,13 @@ async def manage_user_story_threads(project_slug: str):
     for thread in taiga_thread_channel.threads:
         thread_name_to_id[thread.name] = thread.id
 
-    async def get_all_archived_threads(channel):
-        private = DISCORD_THREAD_TYPE == "private_thread"
+    async def get_all_archived_threads(channel, private):
         threads = [archived_thread async for archived_thread in channel.archived_threads(private=private, joined=private, limit=100)]
         return threads
-    all_archived_threads = await get_all_archived_threads(taiga_thread_channel)
+    # Get all archived threads in the channel. Better save than sorry.
+    all_archived_threads = await get_all_archived_threads(taiga_thread_channel, private=True)
+    all_archived_threads += await get_all_archived_threads(taiga_thread_channel, private=False)
+
     for thread in all_archived_threads:
         if thread.name not in thread_name_to_id:
             thread_name_to_id[thread.name] = thread.id
