@@ -284,13 +284,33 @@ This configuration allows you to monitor and trace your application's activity u
 
 ---
 
-## 7. Roadmap
+## 7. Testing
+If you want to use unit tests or add test files. You can go to the tests folders.The "agent_tests" folder belongs to the agents, and tool tests belong to the tools.
+For test mocking, you need to use the Taiga API. You can change from .env file
+### 7.1 Local deployment 
+you can use taiga-docker (https://github.com/taigaio/taiga-docker)
+
+1. TAIGA_URL="http://localhost:9000/"
+
+#### 7.2 Taiga io
+2. TAIGA_URL="https://api.taiga.io"
+https://api.taiga.io
+
+### 7.3 running tests
+-Example usage
+ ```bash
+ python3 testfile.py
+ ```
+
+---
+
+## 8. Roadmap
 
 See the [Taiga Project](https://tree.taiga.io/project/hemati-scrum-agent/kanban) for the latest updates and planned features.
 
 ---
 
-## 8. Contact
+## 9. Contact
 
 For inquiries, support, or contributions, please open an issue [here](https://github.com/Shikenso-Analytics/ScrumAgent/issues) or at [Taiga](https://tree.taiga.io/project/hemati-scrum-agent/issues)  
 or join our [Discord](https://discord.gg/ADV99kyfjg) or contact alexander.henlein@shikenso.com
