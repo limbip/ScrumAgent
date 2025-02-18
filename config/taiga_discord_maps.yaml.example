@@ -1,4 +1,4 @@
- discord_log_channel:
+ discord_log_channels
  # Channels to log all error messages
   - 123456789012345678
   - 987654321098765432

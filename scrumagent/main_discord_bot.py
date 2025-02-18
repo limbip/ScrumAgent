@@ -51,7 +51,7 @@ with open(mod_path / "../config/taiga_discord_maps.yaml") as f:
 
     TAIGA_USER_TO_DISCORD_USER_MAP = yaml_config["taiga_discord_user_map"]
 
-    DISCORD_LOG_CHANNEL = yaml_config["discord_log_channel"]
+    DISCORD_LOG_CHANNEL = yaml_config["discord_log_channels"]
 
 # Initialize the Discord bot
 bot = commands.Bot(command_prefix="!!!!", intents=intents)
