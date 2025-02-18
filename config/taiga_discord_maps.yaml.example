@@ -1,6 +1,13 @@
+ discord_log_channel:
+ # Channels to log all error messages
+  - 123456789012345678
+  - 987654321098765432
+
+
 interactable_discord_channels:
   - "example-channel-1"
   - "example-channel-2"
+
 
 taiga_slag_to_discord_channel_map:
   #TODO: Change ChannelID with name
@@ -8,10 +15,12 @@ taiga_slag_to_discord_channel_map:
   "example-project-1": 123456789012345678  #"example-channel-1"
   "example-project-2": 987654321098765432  #"example-channel-2"
 
+
 other_discord_channel_to_taiga_slag_map:
   #These Channles are not relevant for threads, but should nethertheless be mapped to taiga for e.g. issue creation
   7523875982735098: "example-project-1" #"example-channel-3"
   9876543210987654: "example-project-2" #"example-channel-4"
+
 
 taiga_discord_user_map:
   #TODO: Change Taiga UserID with name
@@ -25,8 +34,3 @@ taiga_discord_user_map:
   8: "user8"
   9: "user9"
   10: "user10"
-
- discord_log_channel:
- # Channel to log all error messages
-  - 123456789012345678
-  - 987654321098765432
