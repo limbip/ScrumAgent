@@ -9,9 +9,15 @@ from discord import Thread
 from langchain_chroma import Chroma
 
 from .base_collector import BaseCollector
+from scrumagent import util_logging
+
 
 # Regular expression to match URLs
 URL_REGEX = re.compile(r'https?://\S+')
+
+
+logger = util_logging.init_module_logger(__name__)
+listener = util_logging.start_listener()
 
 
 class DiscordChatCollector(BaseCollector):
@@ -23,9 +29,11 @@ class DiscordChatCollector(BaseCollector):
         super().__init__(bot, chroma_db)
         self.filter_channels = filter_channels
 
+    @util_logging.exception(__name__)
     async def on_startup(self):
         await self.check_all_unread_massages()
 
+    @util_logging.exception(__name__)
     async def check_all_unread_massages(self):
         for guild in self.bot.guilds:
             channel_que = [guild.channels, guild.threads]
@@ -43,6 +51,7 @@ class DiscordChatCollector(BaseCollector):
                     except discord.Forbidden:
                         print(f"  - No access to channel: {channel.name}")
 
+    @util_logging.exception(__name__)
     def get_last_msg_timestamps_in_db(self, guild, channel) -> float:
         chats = self.db.get(
             where={"$and": [{"guild_id": guild.id}, {"channel_id": channel.id}, {"source": self.DB_IDENTIFIER}]})
@@ -53,6 +62,7 @@ class DiscordChatCollector(BaseCollector):
         last_timetamp = max([chat["timestamp"] for chat in chats["metadatas"]]) if chats else None
         return last_timetamp
 
+    @util_logging.exception(__name__)
     def add_discord_messages_to_db(self, guild, channel, messages: [discord.Message]):
         ids, texts, metadatas = [], [], []
 
@@ -76,6 +86,7 @@ class DiscordChatCollector(BaseCollector):
             print(metadatas)
             return self.add_to_db_batch(ids=ids, texts=texts, metadatas=metadatas)
 
+    @util_logging.exception(__name__)
     def get_files_from_messages(self, guild, channel, messages: [discord.Message]):
         ids, texts, metadatas = [], [], []
         for msg in messages:
@@ -114,6 +125,7 @@ class DiscordChatCollector(BaseCollector):
         if len(ids) > 0:
             return self.add_to_db_batch(ids=ids, texts=texts, metadatas=metadatas)
 
+    @util_logging.exception(__name__)
     def get_links_from_messages(self, guild, channel, messages: [discord.Message]):
         ids, texts, metadatas = [], [], []
         for msg in messages:
@@ -140,6 +152,7 @@ class DiscordChatCollector(BaseCollector):
         if len(ids) > 0:
             return self.add_to_db_batch(ids=ids, texts=texts, metadatas=metadatas)
 
+    @util_logging.exception(__name__)
     def get_surrounding_docs(self, doc_metadata, num_before=3, num_after=3) -> Tuple[List, List]:
         """
         Returns the surrounding messages of a given message.
