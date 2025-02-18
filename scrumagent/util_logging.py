@@ -30,7 +30,7 @@ class DiscordChannelLogger(logging.Handler):
 
     def __init__(self, record_queue: queue.Queue):
         logging.Handler.__init__(self)
-        self.subject = "Application Error: Test Logging"
+        self.subject = "Discord SCRUM Agent Error"
         self._record_queue = record_queue
         self.discord_channel_ids = []
 
