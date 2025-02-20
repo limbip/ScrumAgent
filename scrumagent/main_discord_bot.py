@@ -1,15 +1,12 @@
 import asyncio
 import datetime
 import json
-import logging
 import os
 from pathlib import Path
 import pytz
 import requests
 
 from config import scrum_promts
-from PIL import Image
-from io import BytesIO
 
 import discord
 import yaml
@@ -22,14 +19,12 @@ from langchain_core.messages import HumanMessage
 from scrumagent.build_agent_graph import build_graph
 from scrumagent.data_collector.discord_chat_collector import DiscordChatCollector
 from scrumagent.tools.taiga_tool import get_entity_by_ref_tool, get_project
-from scrumagent.utils import split_text_smart, init_discord_chroma_db, get_image_description_via_llama
+from scrumagent.utils import split_text_smart, init_discord_chroma_db
+from scrumagent import util_logging
 
 mod_path = Path(__file__).parent
 
 load_dotenv()
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_TOKEN")
 DISCORD_THREAD_TYPE = os.getenv("DISCORD_THREAD_TYPE")
@@ -43,7 +38,6 @@ intents.members = True
 
 with open(mod_path / "../config/taiga_discord_maps.yaml") as f:
     yaml_config = yaml.safe_load(f)
-    logger.info(f"Read Config File: {yaml_config}")
 
     INTERACTABLE_DISCORD_CHANNELS = yaml_config["interactable_discord_channels"]
     TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP = yaml_config["taiga_slag_to_discord_channel_map"]
@@ -57,13 +51,19 @@ with open(mod_path / "../config/taiga_discord_maps.yaml") as f:
 
     TAIGA_USER_TO_DISCORD_USER_MAP = yaml_config["taiga_discord_user_map"]
 
+    DISCORD_LOG_CHANNEL = yaml_config["discord_log_channels"]
+
 # Initialize the Discord bot
 bot = commands.Bot(command_prefix="!!!!", intents=intents)
-logger.info("Discord Bot initialized.")
+
+logger = util_logging.init_module_logger(__name__)
+listener = util_logging.start_listener()
+
+print("Discord Bot initialized.")
 
 # Initialize the multi-agent graph for /ama requests
 multi_agent_graph = build_graph()
-logger.info("Multi-agent graph initialized.")
+print("Multi-agent graph initialized.")
 
 # Draw the graph for visualization purposes (optional)
 multi_agent_graph.get_graph(xray=True).draw_mermaid_png(output_file_path="multi_agent_graph.png")
@@ -78,7 +78,7 @@ discord_chroma_db = init_discord_chroma_db()
 discord_chat_collector = DiscordChatCollector(bot, discord_chroma_db, filter_channels=INTERACTABLE_DISCORD_CHANNELS)
 data_collector_list = [discord_chat_collector]
 
-
+@util_logging.exception(__name__)
 def run_agent_in_cb_context(messages: list, config: dict, cost_position=None) -> dict:
     with get_openai_callback() as cb:
         result = multi_agent_graph.invoke(
@@ -86,7 +86,7 @@ def run_agent_in_cb_context(messages: list, config: dict, cost_position=None) ->
             config,
             # debug=True
         )
-        logger.info(f"Total Cost (USD): {cb.total_cost}")
+        #logger.info(f"Total Cost (USD): {cb.total_cost}")
         if cost_position:
             if cost_position not in summed_up_open_ai_cost:
                 summed_up_open_ai_cost[cost_position] = 0
@@ -97,11 +97,12 @@ def run_agent_in_cb_context(messages: list, config: dict, cost_position=None) ->
 
 
 @bot.event
+@util_logging.exception(__name__)
 async def on_message(message: discord.Message):
     if message.author == bot.user:
         return
 
-    logger.info(f"Message received from {message.author}: {message.content}")
+    print(f"Message received from {message.author}: {message.content}")
 
     if type(message.channel) == discord.DMChannel:
         channel_name = message.author.name
@@ -141,7 +142,7 @@ async def on_message(message: discord.Message):
         response = requests.get(attachment.url)
 
         if response.status_code != 200:
-            logger.error(f"Failed to retrieve the file. Status code: {response.status_code}. URL: {attachment.url}")
+            print(f"Failed to retrieve the file. Status code: {response.status_code}. URL: {attachment.url}")
             continue
         attachments_prepared.append(f"Attached File: {attachment.filename} (Type: {attachment.content_type}) - {attachment.url}")
         '''
@@ -175,7 +176,7 @@ async def on_message(message: discord.Message):
     # Invoke the multi-agent graph with the question.
     # And get the total cost of the conversation.
     # Offload the synchronous, blocking call to an executor.
-    logger.info(f"Run Agent with question: {question_format}")
+    print(f"Run Agent with question: {question_format}")
     async with message.channel.typing():
         loop = asyncio.get_running_loop()
         # Use run_in_executor to run the blocking invocation in a separate thread.
@@ -185,7 +186,7 @@ async def on_message(message: discord.Message):
         )
 
     str_result = result["messages"][-1].content
-    logger.info(f"Result: {str_result}")
+    print(f"Result: {str_result}")
 
 
     # send multimple messages if the result is too long (2000 char is discord limit)
@@ -197,8 +198,9 @@ async def on_message(message: discord.Message):
     # discord_chat_collector.get_links_from_messages(message.guild, message.channel, [message])
     # discord_chat_collector.get_files_from_messages(message.guild, message.channel, [message])
 
+@util_logging.exception(__name__)
 async def manage_user_story_threads(project_slug: str):
-    logger.info("Manage user story threads started.")
+    print("Manage user story threads started.")
 
     project = get_project(project_slug)
     taiga_thread_channel = bot.get_channel(int(TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP[project_slug]))
@@ -228,7 +230,7 @@ async def manage_user_story_threads(project_slug: str):
         us_full_infos = json.loads(us_full_infos)
 
         if thread_name in thread_name_to_discord_thread:
-            logger.info(f"Skipping '{thread_name}' as it already exists.")
+            print(f"Thread {thread_name} already exists.")
             discord_thread = thread_name_to_discord_thread[thread_name]
 
             tread_pins = await discord_thread.pins()
@@ -237,7 +239,7 @@ async def manage_user_story_threads(project_slug: str):
                 messages = [message async for message in discord_thread.history(limit=1, oldest_first=True)]
                 await messages[0].pin()
         else:
-            logger.info(f"Creating thread {thread_name}")
+            print(f"Creating thread {thread_name}")
             if DISCORD_THREAD_TYPE == "public_thread":
                 # auto_archive_duration is in minutes (4320 = 3 days)
                 discord_thread = await taiga_thread_channel.create_thread(name=thread_name, type=ChannelType.public_thread, auto_archive_duration=4320)
@@ -265,7 +267,6 @@ async def manage_user_story_threads(project_slug: str):
                                                     )
 
             str_result = result["messages"][-1].content
-            logger.info(f"User Story Init Result: {str_result}")
 
             str_results_segments = split_text_smart(str_result)
             for segment in str_results_segments:
@@ -287,7 +288,7 @@ async def manage_user_story_threads(project_slug: str):
                 associated_users += task["watchers"]
 
         associated_users = list(set(associated_users))
-        logger.info(f"Adding the following associated users: {associated_users}")
+        print(f"Adding the following associated users: {associated_users}")
         for user in associated_users:
             if user in TAIGA_USER_TO_DISCORD_USER_MAP:
                 discord_user_name = TAIGA_USER_TO_DISCORD_USER_MAP[user]
@@ -311,34 +312,42 @@ async def manage_user_story_threads(project_slug: str):
 
 
 @bot.event
+@util_logging.exception(__name__)
 async def on_guild_join():
-    logger.info(f"Guild join: {bot.user} (ID: {bot.user.id})")
+    print(f"Guild join: {bot.user} (ID: {bot.user.id})")
     await discord_chat_collector.check_all_unread_massages()
 
 
 @bot.event
+@util_logging.exception(__name__)
 async def on_guild_remove():
     # Do nothing for now. Delete every msg from the guild from the DB??
-    logger.info(f"Guild remove: {bot.user} (ID: {bot.user.id})")
+    print(f"Guild remove: {bot.user} (ID: {bot.user.id})")
+    pass
 
 
 @bot.event
+@util_logging.exception(__name__)
 async def on_guild_update():
     # DO nothing for now. Update the guild info in the DB??
-    logger.info(f"Guild update: {bot.user} (ID: {bot.user.id})")
+    print(f"Guild update: {bot.user} (ID: {bot.user.id})")
+    pass
 
 
 @tasks.loop(hours=1)
+@util_logging.exception(__name__)
 async def update_taiga_threads():
-    logger.info("Updating taiga threads started.")
+    print("Updating taiga threads started.")
     for project_slug in TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP.keys():
         await manage_user_story_threads(project_slug)
 
 
 @tasks.loop(hours=24)
+@util_logging.exception(__name__)
 async def daily_datacollector_task():
-    logger.info("Daily data collector started.")
+    print("Daily data collector started.")
     # await blog_txt_collector.check_all_files_in_folder()
+    pass
 
 
 """
@@ -355,12 +364,13 @@ async def output_total_open_ai_cost():
 
 
 @tasks.loop(time=datetime.time(hour=8, minute=0, tzinfo=pytz.timezone('Europe/Berlin')))
+@util_logging.exception(__name__)
 async def scrum_master_task():
     # Only run on weekdays
     if datetime.datetime.today().weekday() > 4:
         return
 
-    logger.info("Scrum master started.")
+    #logger.info("Scrum master started.")
     for project_slug in TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP.keys():
         await manage_user_story_threads(project_slug)
 
@@ -368,7 +378,7 @@ async def scrum_master_task():
         taiga_thread_channel = bot.get_channel(TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP[project_slug])
         project = get_project(project_slug)
         for thread in taiga_thread_channel.threads:
-            logger.info(f"Running Scrummaster for {thread.name}")
+            print(f"Running Scrummaster for {thread.name}")
             taiga_ref, taiga_name = thread.name.split(" ", 1)
             taiga_ref = taiga_ref.replace("#", "")
             userstory = project.get_userstory_by_ref(taiga_ref)
@@ -379,7 +389,7 @@ async def scrum_master_task():
                                                          project_slug=project_slug)
             config = {"configurable": {"user_id": thread.name, "thread_id": f"{thread.name} scrum_master"}}
 
-            logger.info(f"Scrum master promt: {scrum_task_promt}")
+            #logger.info(f"Scrum master promt: {scrum_task_promt}")
             async with thread.typing():
                 loop = asyncio.get_running_loop()
                 # Use run_in_executor to run the blocking invocation in a separate thread.
@@ -391,7 +401,7 @@ async def scrum_master_task():
                                                     )
 
             str_result = result["messages"][-1].content
-            logger.info(f"Scrum master result: {str_result}")
+            #logger.info(f"Scrum master result: {str_result}")
 
             str_results_segments = split_text_smart(str_result)
             for segment in str_results_segments:
@@ -399,11 +409,17 @@ async def scrum_master_task():
 
 
 @bot.event
+@util_logging.exception(__name__)
 async def on_ready():
-    logger.info(f"Logged in as {bot.user} (ID: {bot.user.id})")
+    channel_list = [bot.get_channel(x) for x in DISCORD_LOG_CHANNEL]
+    util_logging.override_defaults(override=channel_list)
+    discord_log_worker.start()
+
+    print(f"Logged in as {bot.user} (ID: {bot.user.id})")
+
     for assistant in data_collector_list:
         await assistant.on_startup()
-    logger.info("Bots are ready!")
+
 
     # Runs with start later
     # Get all user_stories of active sprints
@@ -411,12 +427,26 @@ async def on_ready():
     #    await manage_user_story_threads(project_slug)
 
     await bot.tree.sync()
-    logger.info("Bot command tree synced!")
 
     scrum_master_task.start()
     daily_datacollector_task.start()
     update_taiga_threads.start()
+
     # await scrum_master_task()
+
+
+@tasks.loop(seconds=10)
+async def discord_log_worker():
+    try:
+        subject, rec, discord_channels = util_logging.discord_log_queue.get_nowait()
+    except util_logging.queue.Empty:
+        return
+
+    print(f"Captured log message: {subject}: {rec}")
+
+    for ch in discord_channels:
+        await ch.send(f"**{subject}**:\n\n"
+                          f"{rec}")
 
 
 if __name__ == "__main__":
