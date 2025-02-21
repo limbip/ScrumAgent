@@ -135,7 +135,7 @@ def supervisor_node(state: State) -> Command[Literal[*members, END]]:
 
     if MAX_MSG_MODE == "trim":
         # https://python.langchain.com/docs/how_to/chatbots_memory/#modifying-chat-history
-        trimmed_messages = trimmer.invoke(state["messages"])
+        trimmed_messages = trimmer.invoke(messages)
         messages = [system_message] + trimmed_messages
         response = llm.with_structured_output(Router).invoke(messages)
         message_updates = [AIMessage(content=response["messages"], name="supervisor")]
@@ -155,20 +155,19 @@ def supervisor_node(state: State) -> Command[Literal[*members, END]]:
             message_history + [HumanMessage(content=summary_prompt)]
         )
 
-        delete_messages = [RemoveMessage(id=m.id) for m in state["messages"]]
+        delete_messages = [RemoveMessage(id=m.id) for m in messages]
         # Re-add user message
         human_message = HumanMessage(content=last_human_message.content)
         # Call the model with summary & response
         response = llm.with_structured_output(Router).invoke([system_message, summary_message, human_message])
 
-        message_updates = [summary_message, human_message] + delete_messages + [AIMessage(content=response["messages"], name="supervisor")]
+        message_updates = delete_messages + [summary_message, human_message, AIMessage(content=response["messages"], name="supervisor")]
 
 
     else:
-        messages = [system_message] + state["messages"]
+        messages = [system_message] + messages
         response = llm.with_structured_output(Router).invoke(messages)
         message_updates = [AIMessage(content=response["messages"], name="supervisor")]
-
 
 
     print(f"Supervisor response: {response}")
