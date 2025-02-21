@@ -78,3 +78,4 @@ def split_text_smart(text, max_length=2000):
         sections.append(current_section)
 
     return sections
+

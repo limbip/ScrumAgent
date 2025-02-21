@@ -14,7 +14,7 @@ from discord import ChannelType
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
 from langchain_community.callbacks import get_openai_callback
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, trim_messages
 
 from scrumagent.build_agent_graph import build_graph
 from scrumagent.data_collector.discord_chat_collector import DiscordChatCollector
@@ -77,6 +77,10 @@ discord_chroma_db = init_discord_chroma_db()
 # Initialize the data collectors. Deactivated datacollector for now. Only discord chat collector is active.
 discord_chat_collector = DiscordChatCollector(bot, discord_chroma_db, filter_channels=INTERACTABLE_DISCORD_CHANNELS)
 data_collector_list = [discord_chat_collector]
+
+# https://python.langchain.com/docs/how_to/trim_messages/#trimming-based-on-message-count
+
+
 
 @util_logging.exception(__name__)
 def run_agent_in_cb_context(messages: list, config: dict, cost_position=None) -> dict:
@@ -168,9 +172,17 @@ async def on_message(message: discord.Message):
 
     # If the bot is not mentioned in the message, add the question to the state of the multi-agent graph.
     if not bot.user.mentioned_in(message) and type(message.channel) != discord.DMChannel:
-        current_messages_state = multi_agent_graph.get_state(config=config).values.get("messages", [])
-        current_messages_state.append(HumanMessage(content=question_format))
-        multi_agent_graph.update_state(config=config, values={"messages": current_messages_state})
+        # I don't think it is needed to update the state manuel with alle msg before the question.
+        # https://python.langchain.com/docs/how_to/message_history/
+        # Check
+
+        #current_messages_state = multi_agent_graph.get_state(config=config).values.get("messages", [])
+        #current_messages_state.append(HumanMessage(content=question_format))
+        #multi_agent_graph.update_state(config=config, values={"messages": current_messages_state})
+
+        multi_agent_graph.update_state(config=config, values={"messages": HumanMessage(content=question_format)})
+
+
         return
 
     # Invoke the multi-agent graph with the question.

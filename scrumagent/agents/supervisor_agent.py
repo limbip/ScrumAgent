@@ -1,14 +1,19 @@
+import os
 import time
 from datetime import datetime
 from typing import Literal
 
-from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.messages import AIMessage, SystemMessage, HumanMessage, RemoveMessage, trim_messages
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END
 from langgraph.types import Command
 from typing_extensions import TypedDict
 
 from .agent_state import State
+
+MAX_MSG_COUNT = int(os.getenv("MAX_MSG_COUNT"))
+MAX_MSG_MODE = os.getenv("MAX_MSG_MODE")
+
 
 members = ["discord", "human_input", "taiga", "web_browser", "deepseek"
            # "time_parser",
@@ -122,11 +127,36 @@ class Router(TypedDict):
 # llm = ChatOpenAI(model_name="o3-mini")
 llm = ChatOpenAI(model_name="gpt-4o")
 
-
-# llm = ChatOpenAI(model_name="o1")
+# https://python.langchain.com/docs/how_to/chatbots_memory/#modifying-chat-history
+trimmer = trim_messages(strategy="last", max_tokens=MAX_MSG_MODE, token_counter=len)
 
 def supervisor_node(state: State) -> Command[Literal[*members, END]]:
-    messages = [SystemMessage(content=system_prompt)] + state["messages"]
+    messages = state["messages"]
+
+    if MAX_MSG_MODE == "trim":
+        trimmed_messages = trimmer.invoke(state["messages"])
+        messages = [SystemMessage(content=system_prompt)] + trimmed_messages
+
+    elif MAX_MSG_MODE == "summary" and len(messages) > MAX_MSG_COUNT:
+        message_history = state["messages"][:-1]  # exclude the most recent user input
+        last_human_message = state["messages"][-1]
+        # Invoke the model to generate conversation summary
+        summary_prompt = (
+            "Distill the above chat messages into a single summary message. "
+            "Include as many specific details as you can."
+        )
+        summary_message = llm.invoke(
+            message_history + [HumanMessage(content=summary_prompt)]
+        )
+
+        #delete_messages = [RemoveMessage(id=m.id) for m in state["messages"]]
+        # Re-add user message
+        #human_message = HumanMessage(content=last_human_message.content)
+
+        messages = [SystemMessage(content=system_prompt)] + [summary_message, last_human_message] #+ delete_messages
+    else:
+        messages = [SystemMessage(content=system_prompt)] + state["messages"]
+
 
     response = llm.with_structured_output(Router).invoke(messages)
     print(f"Supervisor response: {response}")
