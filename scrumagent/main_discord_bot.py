@@ -307,7 +307,9 @@ async def manage_user_story_threads(project_slug: str):
                 discord_user = discord.utils.get(taiga_thread_channel.members, name=discord_user_name)
 
                 # TODO: For some reason, thread.members is empty. Need the check bot permissions
-                if discord_user not in discord_thread.members:
+                if not discord_user:
+                    print(f"Discord user '{discord_user_name}' for taiga user '{user}' not found.")
+                elif discord_user not in discord_thread.members:
                     await discord_thread.add_user(discord_user)
                     await asyncio.sleep(0.5) # Sleep for 0.5 second to avoid rate limiting
 

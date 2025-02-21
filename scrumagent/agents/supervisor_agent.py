@@ -126,7 +126,8 @@ class Router(TypedDict):
 llm = ChatOpenAI(model_name="gpt-4o")
 
 
-trimmer = trim_messages(strategy="last", max_tokens=MAX_MSG_MODE, token_counter=len)
+trimmer = trim_messages(strategy="last", max_tokens=MAX_MSG_MODE,
+                        token_counter=len, start_on="human")
 
 
 def supervisor_node(state: State) -> Command[Literal[*members, END]]:
@@ -134,14 +135,15 @@ def supervisor_node(state: State) -> Command[Literal[*members, END]]:
     messages = state["messages"]
 
     if MAX_MSG_MODE == "trim":
-        # https://python.langchain.com/docs/how_to/chatbots_memory/#modifying-chat-history
+        # https://python.langchain.com/docs/how_to/chatbots_memory/#trimming-messages
+        # https://python.langchain.com/docs/how_to/trim_messages/
         trimmed_messages = trimmer.invoke(messages)
         messages = [system_message] + trimmed_messages
         response = llm.with_structured_output(Router).invoke(messages)
         message_updates = [AIMessage(content=response["messages"], name="supervisor")]
 
     elif MAX_MSG_MODE == "summary" and len(messages) > MAX_MSG_COUNT:
-        # https://python.langchain.com/docs/how_to/chatbots_memory/#modifying-chat-history
+        # https://python.langchain.com/docs/how_to/chatbots_memory/#summary-memory
 
         message_history = messages[:-1]  # exclude the most recent user input
         last_human_message = messages[-1]
