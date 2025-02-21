@@ -114,9 +114,7 @@ Unix timestamp: {time.time()}.
 
 Act as a careful orchestrator to ensure each worker is called appropriately, gather all partial results, then formulate a single final response that directly answers the user's request.
 """
-
-
-# • If the user wants to send or forward a regular message in Discord, use 'discord_llm'.
+system_message = SystemMessage(content=system_prompt)
 
 
 class Router(TypedDict):
@@ -127,19 +125,27 @@ class Router(TypedDict):
 # llm = ChatOpenAI(model_name="o3-mini")
 llm = ChatOpenAI(model_name="gpt-4o")
 
-# https://python.langchain.com/docs/how_to/chatbots_memory/#modifying-chat-history
+
 trimmer = trim_messages(strategy="last", max_tokens=MAX_MSG_MODE, token_counter=len)
 
+
 def supervisor_node(state: State) -> Command[Literal[*members, END]]:
+
     messages = state["messages"]
 
     if MAX_MSG_MODE == "trim":
+        # https://python.langchain.com/docs/how_to/chatbots_memory/#modifying-chat-history
         trimmed_messages = trimmer.invoke(state["messages"])
-        messages = [SystemMessage(content=system_prompt)] + trimmed_messages
+        messages = [system_message] + trimmed_messages
+        response = llm.with_structured_output(Router).invoke(messages)
+        message_updates = [AIMessage(content=response["messages"], name="supervisor")]
 
     elif MAX_MSG_MODE == "summary" and len(messages) > MAX_MSG_COUNT:
-        message_history = state["messages"][:-1]  # exclude the most recent user input
-        last_human_message = state["messages"][-1]
+        # https://python.langchain.com/docs/how_to/chatbots_memory/#modifying-chat-history
+
+        message_history = messages[:-1]  # exclude the most recent user input
+        last_human_message = messages[-1]
+
         # Invoke the model to generate conversation summary
         summary_prompt = (
             "Distill the above chat messages into a single summary message. "
@@ -149,16 +155,22 @@ def supervisor_node(state: State) -> Command[Literal[*members, END]]:
             message_history + [HumanMessage(content=summary_prompt)]
         )
 
-        #delete_messages = [RemoveMessage(id=m.id) for m in state["messages"]]
+        delete_messages = [RemoveMessage(id=m.id) for m in state["messages"]]
         # Re-add user message
-        #human_message = HumanMessage(content=last_human_message.content)
+        human_message = HumanMessage(content=last_human_message.content)
+        # Call the model with summary & response
+        response = llm.with_structured_output(Router).invoke([system_message, summary_message, human_message])
 
-        messages = [SystemMessage(content=system_prompt)] + [summary_message, last_human_message] #+ delete_messages
+        message_updates = [summary_message, human_message] + delete_messages + [AIMessage(content=response["messages"], name="supervisor")]
+
+
     else:
-        messages = [SystemMessage(content=system_prompt)] + state["messages"]
+        messages = [system_message] + state["messages"]
+        response = llm.with_structured_output(Router).invoke(messages)
+        message_updates = [AIMessage(content=response["messages"], name="supervisor")]
 
 
-    response = llm.with_structured_output(Router).invoke(messages)
+
     print(f"Supervisor response: {response}")
 
     goto = response["next"]
@@ -166,6 +178,4 @@ def supervisor_node(state: State) -> Command[Literal[*members, END]]:
     if goto == "FINISH":
         goto = END
 
-    return Command(goto=goto, update={"next": goto, "messages": [
-        AIMessage(content=response["messages"], name="supervisor")
-    ]})
+    return Command(goto=goto, update={"next": goto, "messages": message_updates})
