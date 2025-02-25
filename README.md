@@ -208,6 +208,9 @@ Scrum Agent offers a range of capabilities to support agile project management:
    - Copy `config/taiga_discord_maps.yaml.example` and rename it to `config/taiga_discord_maps.yaml`.
    - Edit this file as needed to match your project settings.
 
+3. **Specific Settings:**
+    - `MAX_MSG_MODE`: 'trim' (only keep the last `MAX_MSG_COUNT` messages) or 'summary' (when the message count exceeds `MAX_MSG_COUNT`, summarize the messages and keep the summary as context).
+
 ---
 
 ## 4. Usage Examples
