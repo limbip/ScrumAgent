@@ -322,9 +322,9 @@ async def manage_user_story_threads(project_slug: str):
                     await manage_user_story(user_story)
     else:
     """
-    for user_story in project.list_user_stories():
-        if not user_story.is_closed and not user_story.status_extra_info.get("is_closed"):
-            await manage_user_story(user_story)
+    for us in project.list_user_stories():
+        if not us.is_closed and not us.status_extra_info.get("is_closed"):
+            await manage_user_story(us)
 
 
 @bot.event

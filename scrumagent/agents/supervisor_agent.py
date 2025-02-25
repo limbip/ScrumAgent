@@ -126,7 +126,7 @@ class Router(TypedDict):
 llm = ChatOpenAI(model_name="gpt-4o")
 
 
-trimmer = trim_messages(strategy="last", max_tokens=MAX_MSG_MODE,
+trimmer = trim_messages(strategy="last", max_tokens=MAX_MSG_COUNT,
                         token_counter=len, start_on="human")
 
 
@@ -138,9 +138,12 @@ def supervisor_node(state: State) -> Command[Literal[*members, END]]:
         # https://python.langchain.com/docs/how_to/chatbots_memory/#trimming-messages
         # https://python.langchain.com/docs/how_to/trim_messages/
         trimmed_messages = trimmer.invoke(messages)
+
+        delete_messages = [RemoveMessage(id=m.id) for m in messages if m not in trimmed_messages]
+
         messages = [system_message] + trimmed_messages
         response = llm.with_structured_output(Router).invoke(messages)
-        message_updates = [AIMessage(content=response["messages"], name="supervisor")]
+        message_updates = delete_messages + [AIMessage(content=response["messages"], name="supervisor")]
 
     elif MAX_MSG_MODE == "summary" and len(messages) > MAX_MSG_COUNT:
         # https://python.langchain.com/docs/how_to/chatbots_memory/#summary-memory
@@ -156,6 +159,7 @@ def supervisor_node(state: State) -> Command[Literal[*members, END]]:
         summary_message = llm.invoke(
             message_history + [HumanMessage(content=summary_prompt)]
         )
+        summary_message.content = "Chat History: " + summary_message.content
 
         delete_messages = [RemoveMessage(id=m.id) for m in messages]
         # Re-add user message
