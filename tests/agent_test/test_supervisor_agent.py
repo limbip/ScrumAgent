@@ -33,7 +33,7 @@ class SupervisorAgent(unittest.TestCase):
             config = {"configurable": {"thread_id": "2"}},
             debug=True
         )
-        assert "Nemo" in result["messages"][-1].content
+        self.assertTrue("Nemo" in result["messages"][-1].content)
 
 
         test_chat_history = [
@@ -54,7 +54,7 @@ class SupervisorAgent(unittest.TestCase):
             debug=True
         )
 
-        assert "Nemo" not in result["messages"][-1].content
+        self.assertTrue("Nemo" not in result["messages"][-1].content)
 
 
 
@@ -85,8 +85,8 @@ class SupervisorAgent(unittest.TestCase):
             debug=True
         )
 
-        assert result["messages"][0].content.startswith("Chat History:")
-        assert "Nemo" in result["messages"][-1].content  # Bot knows the name because of the summary
+        self.assertTrue(result["messages"][0].content.startswith("Chat History:"))
+        self.assertTrue("Nemo" in result["messages"][-1].content)  # Bot knows the name because of the summary
 
 
 
