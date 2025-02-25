@@ -215,6 +215,9 @@ async def manage_user_story_threads(project_slug: str):
     print("Manage user story threads started.")
 
     project = get_project(project_slug)
+    if not project:
+        print(f"Project '{project_slug}' not found: {project}")
+
     taiga_thread_channel = bot.get_channel(int(TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP[project_slug]))
 
     # Get all threads in the discord channel
@@ -313,7 +316,7 @@ async def manage_user_story_threads(project_slug: str):
                     await discord_thread.add_user(discord_user)
                     await asyncio.sleep(0.5) # Sleep for 0.5 second to avoid rate limiting
 
-    """
+
     if project.is_backlog_activated:
         sprints = project.list_milestones(closed=False)
         for sprint in sprints:
@@ -321,10 +324,9 @@ async def manage_user_story_threads(project_slug: str):
                 if not user_story.is_closed:
                     await manage_user_story(user_story)
     else:
-    """
-    for us in project.list_user_stories():
-        if not us.is_closed and not us.status_extra_info.get("is_closed"):
-            await manage_user_story(us)
+        for us in project.list_user_stories():
+            if not us.is_closed and not us.status_extra_info.get("is_closed"):
+                await manage_user_story(us)
 
 
 @bot.event
