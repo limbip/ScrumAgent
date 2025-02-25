@@ -31,6 +31,7 @@ class SupervisorAgent(unittest.TestCase):
                             + [HumanMessage(content="What's my name?")]
             },
             config = {"configurable": {"thread_id": "2"}},
+            debug=True
         )
         assert "Nemo" in result["messages"][-1].content
 
@@ -50,6 +51,7 @@ class SupervisorAgent(unittest.TestCase):
                             + [HumanMessage(content="What's my name?")]
             },
             config = {"configurable": {"thread_id": "2"}},
+            debug=True
         )
 
         assert "Nemo" not in result["messages"][-1].content
@@ -80,11 +82,11 @@ class SupervisorAgent(unittest.TestCase):
                             + [HumanMessage(content="What's my name?")]
             },
             config={"configurable": {"thread_id": "2"}},
-            #debug=True
+            debug=True
         )
 
-        assert "Nemo" in result["messages"][-1].content  # Bot knows the name because of the summary
         assert result["messages"][0].content.startswith("Chat History:")
+        assert "Nemo" in result["messages"][-1].content  # Bot knows the name because of the summary
 
 
 

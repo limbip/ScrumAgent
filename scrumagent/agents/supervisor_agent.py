@@ -11,8 +11,8 @@ from typing_extensions import TypedDict
 
 from .agent_state import State
 
-MAX_MSG_COUNT = int(os.getenv("MAX_MSG_COUNT", 20))
-MAX_MSG_MODE = os.getenv("MAX_MSG_MODE", "trim")
+MAX_MSG_COUNT = int(os.getenv("MAX_MSG_COUNT"))
+MAX_MSG_MODE = os.getenv("MAX_MSG_MODE")
 
 
 members = ["discord", "human_input", "taiga", "web_browser", "deepseek"
