@@ -14,7 +14,7 @@ from discord import ChannelType
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
 from langchain_community.callbacks import get_openai_callback
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, trim_messages
 
 from scrumagent.build_agent_graph import build_graph
 from scrumagent.data_collector.discord_chat_collector import DiscordChatCollector
@@ -78,6 +78,10 @@ discord_chroma_db = init_discord_chroma_db()
 discord_chat_collector = DiscordChatCollector(bot, discord_chroma_db, filter_channels=INTERACTABLE_DISCORD_CHANNELS)
 data_collector_list = [discord_chat_collector]
 
+# https://python.langchain.com/docs/how_to/trim_messages/#trimming-based-on-message-count
+
+
+
 @util_logging.exception(__name__)
 def run_agent_in_cb_context(messages: list, config: dict, cost_position=None) -> dict:
     with get_openai_callback() as cb:
@@ -125,8 +129,9 @@ async def on_message(message: discord.Message):
         taiga_slug = None
         if message.channel.id in DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP:
             taiga_slug = DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP[message.channel.id]
-        elif message.channel.parent is not None and message.channel.parent.id in DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP:
-            taiga_slug = DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP[message.channel.parent.id]
+        elif message.channel.parent is not None:
+            if message.channel.parent.id in DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP:
+                taiga_slug = DISCORD_CHANNEL_TO_TAIGA_SLAG_MAP[message.channel.parent.id]
 
         if taiga_slug:
             question_format += f" (Corresponding taiga slug: {taiga_slug})"
@@ -168,9 +173,17 @@ async def on_message(message: discord.Message):
 
     # If the bot is not mentioned in the message, add the question to the state of the multi-agent graph.
     if not bot.user.mentioned_in(message) and type(message.channel) != discord.DMChannel:
-        current_messages_state = multi_agent_graph.get_state(config=config).values.get("messages", [])
-        current_messages_state.append(HumanMessage(content=question_format))
-        multi_agent_graph.update_state(config=config, values={"messages": current_messages_state})
+        # I don't think it is needed to update the state manuel with alle msg before the question.
+        # https://python.langchain.com/docs/how_to/message_history/
+        # Check
+
+        #current_messages_state = multi_agent_graph.get_state(config=config).values.get("messages", [])
+        #current_messages_state.append(HumanMessage(content=question_format))
+        #multi_agent_graph.update_state(config=config, values={"messages": current_messages_state})
+
+        multi_agent_graph.update_state(config=config, values={"messages": HumanMessage(content=question_format)})
+
+
         return
 
     # Invoke the multi-agent graph with the question.
@@ -203,9 +216,12 @@ async def manage_user_story_threads(project_slug: str):
     print("Manage user story threads started.")
 
     project = get_project(project_slug)
+    if not project:
+        print(f"Project '{project_slug}' not found: {project}")
+
     taiga_thread_channel = bot.get_channel(int(TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP[project_slug]))
 
-    # Get all threads in the channel
+    # Get all threads in the discord channel
     thread_name_to_discord_thread = {}
     for d_thread in taiga_thread_channel.threads:
         thread_name_to_discord_thread[d_thread.name] = d_thread
@@ -295,9 +311,12 @@ async def manage_user_story_threads(project_slug: str):
                 discord_user = discord.utils.get(taiga_thread_channel.members, name=discord_user_name)
 
                 # TODO: For some reason, thread.members is empty. Need the check bot permissions
-                if discord_user not in discord_thread.members:
+                if not discord_user:
+                    print(f"Discord user '{discord_user_name}' for taiga user '{user}' not found.")
+                elif discord_user not in discord_thread.members:
                     await discord_thread.add_user(discord_user)
                     await asyncio.sleep(0.5) # Sleep for 0.5 second to avoid rate limiting
+
 
     if project.is_backlog_activated:
         sprints = project.list_milestones(closed=False)
@@ -306,9 +325,9 @@ async def manage_user_story_threads(project_slug: str):
                 if not user_story.is_closed:
                     await manage_user_story(user_story)
     else:
-        for user_story in project.list_user_stories():
-            if not user_story.is_closed and not user_story.status_extra_info.get("is_closed"):
-                await manage_user_story(user_story)
+        for us in project.list_user_stories():
+            if not us.is_closed and not us.status_extra_info.get("is_closed"):
+                await manage_user_story(us)
 
 
 @bot.event
