@@ -1,7 +1,7 @@
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 
-from scrumagent.tools.taiga_tool import (get_entity_by_ref_tool,
+from langchain_taiga.tools.taiga_tools import (get_entity_by_ref_tool,
                                          update_entity_by_ref_tool,
                                          add_comment_by_ref_tool,
                                          create_entity_tool,
