@@ -18,7 +18,7 @@ from langchain_core.messages import HumanMessage, trim_messages
 
 from scrumagent.build_agent_graph import build_graph
 from scrumagent.data_collector.discord_chat_collector import DiscordChatCollector
-from scrumagent.tools.taiga_tool import get_entity_by_ref_tool, get_project
+from langchain_taiga.tools.taiga_tools import get_entity_by_ref_tool, get_project
 from scrumagent.utils import split_text_smart, init_discord_chroma_db
 from scrumagent import util_logging
 
