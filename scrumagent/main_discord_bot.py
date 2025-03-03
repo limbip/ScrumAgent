@@ -2,9 +2,9 @@ import asyncio
 import datetime
 import json
 import os
+import httpx
 from pathlib import Path
 import pytz
-import requests
 
 from config import scrum_promts
 
@@ -144,7 +144,7 @@ async def on_message(message: discord.Message):
     attachments = message.attachments
     attachments_prepared = []
     for attachment in attachments:
-        response = requests.get(attachment.url)
+        response = httpx.get(attachment.url)
 
         if response.status_code != 200:
             print(f"Failed to retrieve the file. Status code: {response.status_code}. URL: {attachment.url}")
