@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from langchain_core.tools import tool
 
 from scrumagent.utils import init_discord_chroma_db
+from scrumagent.tools.timeframe_parser_tool import interpret_timeframe_tool
 
 load_dotenv()
 
@@ -55,24 +56,20 @@ def discord_search_tool(query: str, max_results: int = 5) -> str:
 
 
 @tool(parse_docstring=True)
-def discord_channel_msgs_tool(channel_name: str = None, before: int = None, after: int = None, limit: int = None):
+def discord_channel_msgs_tool(channel_name: str = None, timeframe: str = None) -> str:
     """
     Use this tool to retrieve historical Discord messages from a specific channel or thread,
     optionally filtering by a time range.
 
     Example usage:
         discord_channel_msgs_tool(
-          channel_name="my-channel",
-          after=1690000000,
-          before=1692000000,
-          limit=50
+            channel_name="#1234 My Channel",
+            timeframe="yesterday"
         )
 
     Args:
-        channel_name (str): The name of the Discord channel to search in. Threads start with #.
-        before (int, optional): A Unix timestamp. Only messages older than 'before' are returned.
-        after (int, optional): A Unix timestamp. Only messages newer than 'after' are returned.
-        limit (int, optional): Max number of messages to fetch.
+        channel_name (str): The name of the Discord channel to search in. Threads start with #. Does not have to be URL encoded.
+        timeframe (str, optional): A time range to filter messages, such as "yesterday" or "last week".
 
     Returns:
         str: A formatted string of matching messages, including user, channel, and timestamp.
@@ -85,6 +82,10 @@ def discord_channel_msgs_tool(channel_name: str = None, before: int = None, afte
     if channel_name:
         where_filter.append({"channel_name": channel_name})
 
+    timeframes = json.loads(interpret_timeframe_tool(timeframe))
+    before = timeframes.get("before")
+    after = timeframes.get("after")
+
     # https://docs.trychroma.com/docs/querying-collections/metadata-filtering
     if before:
         where_filter.append({"timestamp": {"$lte": before}})  # less than or equal
@@ -93,7 +94,7 @@ def discord_channel_msgs_tool(channel_name: str = None, before: int = None, afte
 
     print(where_filter)
 
-    results_dict = chroma_db_inst.get(where={"$and": where_filter}, limit=limit)
+    results_dict = chroma_db_inst.get(where={"$and": where_filter})
     print("!!!" + str(results_dict))
     str_format = ""
     # json_results = []
@@ -111,7 +112,7 @@ def discord_channel_msgs_tool(channel_name: str = None, before: int = None, afte
 
 
 @tool(parse_docstring=True)
-def discord_get_recent_messages_tool(channel_id: str, limit: int = 100) -> str:
+def discord_get_recent_messages_tool(channel_id: str, limit: int = 200) -> str:
     """
     Decepricated
     Use this tool to fetch the most recent messages from a specific Discord channel or thread via the Discord API.
@@ -119,12 +120,12 @@ def discord_get_recent_messages_tool(channel_id: str, limit: int = 100) -> str:
     Example usage:
         discord_get_recent_messages_tool(
             channel_id="123456789012345678",
-            limit=100
+            limit=200
         )
 
     Args:
         channel_id (str): The unique ID of the Discord channel or thread to retrieve messages from.
-        limit (int, optional): Maximum number of recent messages to retrieve. Defaults to 100.
+        limit (int, optional): Maximum number of recent messages to retrieve. Defaults to 200.
 
     Returns:
         str: A formatted string of the most recent messages, including content, user, and timestamp.

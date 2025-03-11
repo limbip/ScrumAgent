@@ -2,16 +2,16 @@
 Contains the promts for the scrum master and the human_input agent.
 """
 
-
 # scrum_master_promt.format(taiga_ref=taiga_ref, taiga_name=taiga_name, project_slug=project_slug)
+
 scrum_master_promt = '''
-Analyze the development progress of user_story "{taiga_name}" (Ref: {taiga_ref}) in project_slug "{project_slug}". 
+Analyze the development progress of user_story "{taiga_name}" (Ref: {taiga_ref}) in project with project_slug "{project_slug}". 
 
 ### **Your Responsibilities:**
 
 1. **Internal Analysis** *(Do not display in chat)*  
    - Retrieve the **User Story Status** from Taiga: Task progress, Comments, Completion status, Due date, URL link
-   - Retrieve the last 3 days of messages from the corresponding **Discord chat thread** "#{taiga_ref} {taiga_name}".
+   - Retrieve the last 3 days of messages from the corresponding **Discord chat thread** with the channel name: "#{taiga_ref} {taiga_name}".
    - **Compare Taiga and Discord data**:  
       - Identify key decisions, updates, blockers, or issues discussed in Discord.
       - Cross-check with Taiga tasks.
@@ -50,12 +50,9 @@ Analyze the development progress of user_story "{taiga_name}" (Ref: {taiga_ref})
 ---
 
 **Goal:**  
-Deliver a clear, precise status update on User Story "#{taiga_ref} {taiga_name}" that reconciles the Taiga and Discord data.  
+Deliver a clear, precise status update on User Story "#{taiga_ref} {taiga_name}" in project with project_slug {project_slug} that reconciles the Taiga and Discord data.  
 Make concrete suggestions for closing tickets or further processing open tasks and finally ask all developers to do a structured daily standup.
 '''
-
-
-
 
 # init_user_story_thread_promt.format(taiga_ref=user_story.ref, taiga_name=user_story.subject, project_slug=project_slug)
 init_user_story_thread_promt = '''

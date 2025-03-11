@@ -1,6 +1,7 @@
 import os
 from typing import Literal
 
+from dotenv import load_dotenv
 from langchain_core.messages import AIMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.checkpoint.mongodb import MongoDBSaver
@@ -18,6 +19,9 @@ from scrumagent.agents.taiga_agent import taiga_agent
 from scrumagent.agents.web_agent import research_agent
 from scrumagent.tools.timeframe_parser_tool import interpret_timeframe_tool, current_timestamp_tool
 
+load_dotenv()
+
+ACTIVATE_DEEPSEEK = os.getenv("ACTIVATE_DEEPSEEK", "").lower() in ("true", "1", "yes", "on")
 
 def human_input_node(state: State) -> Command[Literal["supervisor"]]:
     # It doesn't work like expected. It doesn't wait for the user input.
@@ -149,7 +153,8 @@ def build_graph():
     builder.add_node("web_browser", web_node)
     builder.add_node("discord", discord_search_node)
     # builder.add_node("coder", coder_node)
-    builder.add_node("deepseek", llm_node)
+    if ACTIVATE_DEEPSEEK:
+        builder.add_node("deepseek", llm_node)
     builder.add_node("human_input", human_input_node)
     builder.add_node("taiga", taiga_node)
     # builder.add_node("time_parser", time_parser_node)

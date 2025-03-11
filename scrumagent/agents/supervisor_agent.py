@@ -14,10 +14,15 @@ from .agent_state import State
 MAX_MSG_COUNT = int(os.getenv("MAX_MSG_COUNT"))
 MAX_MSG_MODE = os.getenv("MAX_MSG_MODE")
 
+ACTIVATE_DEEPSEEK = os.getenv("ACTIVATE_DEEPSEEK", "").lower() in ("true", "1", "yes", "on")
 
-members = ["discord", "human_input", "taiga", "web_browser", "deepseek"
+members = ["discord", "human_input", "taiga", "web_browser",
            # "time_parser",
            ]
+
+if ACTIVATE_DEEPSEEK:
+    members.append("deepseek")
+
 options = members + ["FINISH"]
 
 # "  - 'discord_send_message_tool': to send a message to a specific channel or thread.\n\n"
@@ -49,12 +54,6 @@ members_infos = {
     "human_input": (
         "The 'human_input' worker can be used to ask the user for additional information if the request is unclear or missing details. "
     ),
-    "deepseek": (
-        "The 'deepseek' agent specializes in advanced reasoning, abstract thinking, and decomposing complex tasks into manageable steps. "
-        "It excels at analyzing intricate problems, identifying patterns, and generating strategic solutions across diverse domains. "
-        "Designed for depth over speed, it prioritizes logical rigor, contextual understanding, and creative problem-solving, making it ideal for scenarios requiring nuanced analysis, long-term planning, or synthesis of ambiguous information. "
-        "It collaborates effectively with other agents by providing structured insights, hypotheses, and step-by-step breakdowns to support system-wide objectives."
-    ),
     "web_browser": (
         "The 'web_browser' worker can use the DuckDuckGo search engine to search the web for important information, "
         "ArXiv for research papers, YouTube, and Wikipedia. It may also navigate to webpages."
@@ -66,6 +65,14 @@ members_infos = {
     #     "like 'today' or '2 weeks ago', route the request to 'time_parser'."
     # ),
 }
+
+if ACTIVATE_DEEPSEEK:
+    members_infos["deepseek"] = (
+        "The 'deepseek' agent specializes in advanced reasoning, abstract thinking, and decomposing complex tasks into manageable steps. "
+        "It excels at analyzing intricate problems, identifying patterns, and generating strategic solutions across diverse domains. "
+        "Designed for depth over speed, it prioritizes logical rigor, contextual understanding, and creative problem-solving, making it ideal for scenarios requiring nuanced analysis, long-term planning, or synthesis of ambiguous information. "
+        "It collaborates effectively with other agents by providing structured insights, hypotheses, and step-by-step breakdowns to support system-wide objectives."
+    )
 
 members_specs = '\n\n'.join(members_infos.values())
 
@@ -92,7 +99,8 @@ Instructions:
   • Always combine the results from any involved workers before giving your final response.
   • Once you have formed the final answer, output it clearly and do not respond further.
   • When you are ready to finalize, you may produce an internal END signal, but do not show the word END in the user-facing answer.
-
+  • Keep the current time and Unix timestamp in your thinking process.
+  
 When you respond, produce valid JSON **only**, with two keys:
 1. "next" — one of {options}
 2. "messages" — a string message.
@@ -125,13 +133,11 @@ class Router(TypedDict):
 # llm = ChatOpenAI(model_name="o3-mini")
 llm = ChatOpenAI(model_name="gpt-4o")
 
-
 trimmer = trim_messages(strategy="last", max_tokens=MAX_MSG_COUNT,
                         token_counter=len, start_on="human")
 
 
 def supervisor_node(state: State) -> Command[Literal[*members, END]]:
-
     messages = state["messages"]
 
     if MAX_MSG_MODE == "trim":
@@ -167,14 +173,14 @@ def supervisor_node(state: State) -> Command[Literal[*members, END]]:
         # Call the model with summary & response
         response = llm.with_structured_output(Router).invoke([system_message, summary_message, human_message])
 
-        message_updates = delete_messages + [summary_message, human_message, AIMessage(content=response["messages"], name="supervisor")]
+        message_updates = delete_messages + [summary_message, human_message,
+                                             AIMessage(content=response["messages"], name="supervisor")]
 
 
     else:
         messages = [system_message] + messages
         response = llm.with_structured_output(Router).invoke(messages)
         message_updates = [AIMessage(content=response["messages"], name="supervisor")]
-
 
     print(f"Supervisor response: {response}")
 
