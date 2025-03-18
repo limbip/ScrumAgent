@@ -454,7 +454,6 @@ async def on_ready():
     scrum_master_task.start()
     daily_datacollector_task.start()
     update_taiga_threads.start()
-    discord_log_worker.start()
     print(f"Tasks started.")
 
 
