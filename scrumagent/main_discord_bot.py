@@ -89,7 +89,7 @@ def run_agent_in_cb_context(messages: list, config: dict, cost_position=None) ->
             config,
             # debug=True
         )
-        # logger.info(f"Total Cost (USD): {cb.total_cost}")
+
         if cost_position:
             if cost_position not in summed_up_open_ai_cost:
                 summed_up_open_ai_cost[cost_position] = 0
@@ -105,7 +105,7 @@ async def on_message(message: discord.Message):
     if message.author == bot.user:
         return
 
-    print(f"Message received from {message.author}: {message.content}")
+    print(f"Message ({type(message.channel)}) received from {message.author}: {message.content}")
     if type(message.channel) == discord.DMChannel:
         channel_name = message.author.name
     else:
@@ -172,6 +172,7 @@ async def on_message(message: discord.Message):
 
     # If the bot is not mentioned in the message, add the question to the state of the multi-agent graph.
     if not bot.user.mentioned_in(message) and type(message.channel) != discord.DMChannel:
+        print(f"Add question to state: {question_format}")
         # I don't think it is needed to update the state manuel with alle msg before the question.
         # https://python.langchain.com/docs/how_to/message_history/
         # Check
@@ -388,11 +389,12 @@ async def output_total_open_ai_cost():
 @tasks.loop(time=datetime.time(hour=8, minute=0, tzinfo=pytz.timezone('Europe/Berlin')))
 @util_logging.exception(__name__)
 async def scrum_master_task():
+    print(f"Scrum master task started at {datetime.datetime.now()}")
     # Only run on weekdays
     if datetime.datetime.today().weekday() > 4:
+        print("Scrum master task skipped. Weekend :)")
         return
 
-    # logger.info("Scrum master started.")
     for project_slug in TAIGA_SLAG_TO_DISCORD_CHANNEL_MAP.keys():
         await manage_user_story_threads(project_slug)
 
@@ -411,7 +413,6 @@ async def scrum_master_task():
                                                                       project_slug=project_slug)
             config = {"configurable": {"user_id": thread.name, "thread_id": f"{thread.name} scrum_master"}}
 
-            # logger.info(f"Scrum master promt: {scrum_task_promt}")
             async with thread.typing():
                 loop = asyncio.get_running_loop()
                 # Use run_in_executor to run the blocking invocation in a separate thread.
@@ -423,7 +424,7 @@ async def scrum_master_task():
                                                     )
 
             str_result = result["messages"][-1].content
-            # logger.info(f"Scrum master result: {str_result}")
+            print(f"Scrum master result: {str_result}")
 
             str_results_segments = split_text_smart(str_result)
             for segment in str_results_segments:
@@ -453,8 +454,8 @@ async def on_ready():
     scrum_master_task.start()
     daily_datacollector_task.start()
     update_taiga_threads.start()
+    print(f"Tasks started.")
 
-    # await scrum_master_task()
 
 
 @tasks.loop(seconds=10)
