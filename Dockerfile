@@ -17,6 +17,11 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy the rest of the application
 COPY . .
 
+# Rename the custom configuration file if it exists
+RUN if [ -f /app/config/taiga_discord_maps.yaml.limbip ]; then \
+    mv /app/config/taiga_discord_maps.yaml.limbip /app/config/taiga_discord_maps.yaml; \
+    fi
+
 # Create a script to start Ollama and the application
 RUN echo '#!/bin/bash\n\
 echo "Installing Ollama..."\n\

@@ -1,0 +1,28 @@
+discord_log_channels:
+ # Channels to log all error messages
+  - 1357752596747649035
+
+
+interactable_discord_channels:
+  - user_stories
+  - core
+  - dev
+  - deployments
+
+
+taiga_slag_to_discord_channel_map:
+  #TODO: Change ChannelID with name
+  #These Channels should also be listed in interactable_discord_channels
+  "Limbip": 1357752780160499892  #"example-channel-1"
+
+
+other_discord_channel_to_taiga_slag_map:
+  #These Channles are not relevant for threads, but should nethertheless be mapped to taiga for e.g. issue creation
+  1344943623187333150: "Limbip"
+  1316352325358456863: "Limbip" 
+  1323366888717291653: "Limbip"
+
+
+taiga_discord_user_map:
+  #TODO: Change Taiga UserID with name
+  773611: "Javi 👾"
