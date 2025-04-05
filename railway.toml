@@ -6,9 +6,6 @@ buildCommand = "pip install -r requirements.txt"
 startCommand = "python -m scrumagent.main_discord_bot"
 healthcheckPath = "/"
 healthcheckTimeout = 100
-restartPolicyType = "on-failure"
-restartPolicyMaxRetries = 10
 
 [variables]
 PYTHON_VERSION = "3.11"
-ACTIVATE_DEEPSEEK = "false"
