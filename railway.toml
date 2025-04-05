@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "pip install -r requirements.txt"
+buildCommand = "cp -f config/taiga_discord_maps.yaml.limbip config/taiga_discord_maps.yaml && pip install -r requirements.txt"
 
 [deploy]
 startCommand = "python -m scrumagent.main_discord_bot"
