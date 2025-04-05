@@ -13,14 +13,14 @@ interactable_discord_channels:
 taiga_slag_to_discord_channel_map:
   #TODO: Change ChannelID with name
   #These Channels should also be listed in interactable_discord_channels
-  "Limbip": 1357752780160499892  #"example-channel-1"
+  "jajo-limbip": 1357752780160499892  #"example-channel-1"
 
 
 other_discord_channel_to_taiga_slag_map:
   #These Channles are not relevant for threads, but should nethertheless be mapped to taiga for e.g. issue creation
-  1344943623187333150: "Limbip"
-  1316352325358456863: "Limbip" 
-  1323366888717291653: "Limbip"
+  1344943623187333150: "jajo-limbip"
+  1316352325358456863: "jajo-limbip" 
+  1323366888717291653: "jajo-limbip"
 
 
 taiga_discord_user_map:
