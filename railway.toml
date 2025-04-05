@@ -4,8 +4,6 @@ buildCommand = "cp -f config/taiga_discord_maps.yaml.limbip config/taiga_discord
 
 [deploy]
 startCommand = "python -m scrumagent.main_discord_bot"
-healthcheckPath = "/"
-healthcheckTimeout = 100
 
 [variables]
 PYTHON_VERSION = "3.11"
