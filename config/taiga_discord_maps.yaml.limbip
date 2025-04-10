@@ -25,5 +25,7 @@ other_discord_channel_to_taiga_slag_map:
 
 taiga_discord_user_map:
   #TODO: Change Taiga UserID with name
-  773611: "orov_io"
+  773611: "orov_io" # jajo
+  775858: "juanpm77_82724" # juan
+  776825: "elia_32416" # elia
 
